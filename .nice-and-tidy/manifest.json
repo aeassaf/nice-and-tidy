@@ -4,9 +4,11 @@
     ".claude/skills/nice-and-tidy/SKILL.md": "eb200be474a60478a9c8cfe2287fe02b5bf2291b751c06adc230f0dc2d3af870",
     ".cursor/rules/nice-and-tidy.mdc": "bcf7b7dea37d2254667ef4f5a688f282f386936cd642590d5d07a5097931444a",
     ".github/copilot-instructions.md": "55b0e49c67d108a76bdcbd77ae86a709ebedb0b8fc5ae48a7cd9bca2dc28b2d0",
-    ".windsurfrules": "9841aad19e8befa28900f74137a639f41b940685e8c9c23c5f04ffff50fb07b9",
     "AGENTS.md": "89215cbd7b992c0ccf426ce2f528d9ec561ed499023bf8bd123adae215217998",
     "CLAUDE.md": "b976708a94aab069356ff419fd72d7d284006e63585e66c9becb5c0e50ca9e46",
+    "docs/BRANCHING.md": "ebedc7fe481424074d3615186a5168004796ace011e08cc4050267aec55d63bb",
+    "docs/COMMIT_CONVENTIONS.md": "ffa2d5cca8244ded26b4c1620aa5c3b3bb235e37c388adbc6c7c309359fc16f3",
+    "docs/WORKFLOW.md": "4b4b21a680367d2c8de0bb7942aa60da29ba9c5d7be1c94fb6c9af1fe61ab158",
     "nice-and-tidy.config.json": "d10780d4a408f581cd9cd1edc4ceb51193768c4124a85ff7388ddeb72cf1e1fc"
   }
 }
