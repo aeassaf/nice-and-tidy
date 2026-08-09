@@ -4,12 +4,17 @@
     ".claude/skills/nice-and-tidy/SKILL.md": "8abf40bc49f48f7b2554d8b2c6f7e7f00aab76831d557e035e881c95a7912dda",
     ".cursor/rules/nice-and-tidy.mdc": "bcf7b7dea37d2254667ef4f5a688f282f386936cd642590d5d07a5097931444a",
     ".github/copilot-instructions.md": "55b0e49c67d108a76bdcbd77ae86a709ebedb0b8fc5ae48a7cd9bca2dc28b2d0",
+    ".github/pull_request_template.md": "7fa4fbde68616a6aa6212a755c2eebdefc37e3e086c20d857b5381e319a86316",
+    ".github/workflows/ci.yml": "3b4fe527ddcd1d77a8c55a2ed2c57ba05df7fc1974f3aa66dd42e4e822919c8f",
+    ".github/workflows/pr-description.yml": "e9ca60ad94a0f4903926e33b0849b224e3bb4c8f061ab958550b2a11834c77f6",
     "AGENTS.md": "67b76c970679263be03c0b4108b1a85d4f252d53c9ef8086e0b9a538f9f8d69e",
     "CLAUDE.md": "b976708a94aab069356ff419fd72d7d284006e63585e66c9becb5c0e50ca9e46",
     "docs/BRANCHING.md": "ebedc7fe481424074d3615186a5168004796ace011e08cc4050267aec55d63bb",
     "docs/COMMIT_CONVENTIONS.md": "ffa2d5cca8244ded26b4c1620aa5c3b3bb235e37c388adbc6c7c309359fc16f3",
     "docs/SESSION_PROTOCOL.md": "f99182dca7736ad7ddd7405475be097e7947bf2806e354e78539a46506cc52b2",
     "docs/WORKFLOW.md": "4b4b21a680367d2c8de0bb7942aa60da29ba9c5d7be1c94fb6c9af1fe61ab158",
-    "nice-and-tidy.config.json": "d10780d4a408f581cd9cd1edc4ceb51193768c4124a85ff7388ddeb72cf1e1fc"
+    "nice-and-tidy.config.json": "d10780d4a408f581cd9cd1edc4ceb51193768c4124a85ff7388ddeb72cf1e1fc",
+    "scripts/check-pr-description.mjs": "a81c2a21cb5d240b8f5c1b7a3a933b663d5e2c9563514e8ed44dbac8a82aadcc",
+    "scripts/check-pr-description.test.mjs": "66e4e72f0f5c750cf430642bc284ae9e8edc6f022a51e7163ad368a69eaac5ea"
   }
 }
