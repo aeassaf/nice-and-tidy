@@ -3,32 +3,89 @@
 Install an issue-first Git workflow and an AI session protocol into any repo, for any
 coding agent.
 
-Two things get installed from one command:
-
-1. **A workflow** — issue before branch, branch naming, a commit convention, PR
-   field-filling, and a project board whose Status tracks reality instead of drifting
-   from it.
-2. **A response protocol** — how an agent talks: terse, structured, and every session
-   ends by leaving a trail the next session can pick up cold, in a committed markdown
-   file rather than in GitHub comments.
-
-Both were hand-derived on a real repo over several days. This exists so they don't
-have to be re-derived per project.
-
 ```bash
 npx nice-and-tidy init
 ```
 
-Zero runtime dependencies, so that's a cold start with nothing to download.
+## TLDR
+
+- **What it does**: one command writes a set of instruction files (`AGENTS.md` +
+  companions) that teach any coding agent — Claude, Copilot, Cursor, whatever's next —
+  to work issue-first: open the issue, cut a conventionally-named branch, write
+  conventional commits, fill every PR field, and keep the board honest.
+- **What you get**: a workflow (branch naming, commit convention, PR/board hygiene)
+  and a response protocol (terse replies, session handoff through a committed file
+  instead of scattered GitHub comments).
+- **Zero runtime dependencies.** `npx` is a genuine cold start — nothing to download
+  beyond the package itself.
+- Both were hand-derived on a real repo over several days. This exists so they don't
+  have to be re-derived per project.
+- **Safe to re-run.** Files you've hand-edited are never silently overwritten — see
+  [Re-running is safe](#re-running-is-safe).
+- **Two honest limits**: nothing lints commit messages (it's a convention, not a
+  gate), and `bootstrap` can't create a Project board because GitHub exposes no API
+  for cloning the board template — it prints the three manual steps instead.
+
+## Example
+
+```
+$ npx nice-and-tidy init
+nice-and-tidy · local install
+  /path/to/yourrepo
+
+  create     nice-and-tidy.config.json
+  create     AGENTS.md
+  create     docs/WORKFLOW.md
+  create     docs/BRANCHING.md
+  create     docs/COMMIT_CONVENTIONS.md
+  create     docs/SESSION_PROTOCOL.md
+  create     CLAUDE.md
+  create     .claude/skills/nice-and-tidy/SKILL.md
+  create     .github/copilot-instructions.md
+  create     .cursor/rules/nice-and-tidy.mdc
+  create     docs/RESUME_HERE.md
+
+  11 created.
+```
+
+`.nice-and-tidy/manifest.json` is written alongside these but isn't itself a planned
+file, so it doesn't get its own line — 12 files on disk, 11 reported. Nothing on
+GitHub was touched — that's `bootstrap`'s job. Run it again and every line above
+becomes `unchanged`, because nothing changed.
+
+Open a fresh chat with any of those agents afterward and ask it to pick up an issue —
+it now knows to cut `feature/42-your-slug`, commit as `feat(cli): …`, and fill the PR
+template before asking you to review.
+
+## How it fits together
+
+```mermaid
+flowchart TD
+    A["npx nice-and-tidy init"] --> B["AGENTS.md + companion docs written"]
+    B --> C["CLAUDE.md, copilot-instructions.md,<br/>.cursor rules — one-line pointers"]
+    C --> D["Agent reads its shim,<br/>follows AGENTS.md"]
+```
+
+Once an agent is following `AGENTS.md`, every session runs the same cycle:
+
+```mermaid
+flowchart TD
+    E["Issue opened first"] --> F["Branch: type/N-slug"]
+    F --> G["Conventional commits"]
+    G --> H["PR: fields filled,<br/>closes the issue"]
+    H --> I["Board Status kept honest"]
+    E -.-> J["Session ends"]
+    J -.-> K["Handoff written to<br/>docs/RESUME_HERE.md"]
+```
+
+Everything an agent needs to behave this way lives in the repo it's working in — no
+service to authenticate against, no daemon to keep running.
 
 ## Status
 
-`init`, `diff` and `bootstrap` all work. 124 tests, mostly negative.
-
-Two limits worth knowing before you adopt it, both covered in more detail below:
-nothing lints commit messages — the convention is a convention — and `bootstrap`
-cannot create a Project board, because GitHub exposes no API for cloning a board
-template. It prints the manual steps instead of pretending otherwise.
+`init`, `diff` and `bootstrap` all work. 124 tests, mostly negative — an engine whose
+job is "do not destroy the user's work" is only trustworthy if something proves it
+refuses to.
 
 ## What `init` writes
 
@@ -64,25 +121,31 @@ milestones, the PR template and the board is `bootstrap`'s job.
 
 ## Re-running is safe
 
-This is the part worth understanding, because it is the part most scaffolding tools
-get wrong in one of two directions — clobbering your edits, or never being able to
-update anything again.
+This is the part most scaffolding tools get wrong in one of two directions —
+clobbering your edits, or never being able to update anything again.
 
 Every file written is recorded in `.nice-and-tidy/manifest.json` as `path → sha256`.
-On a re-run each file falls into one of these:
+On a re-run, each file falls into one of these buckets:
 
-| State | What happens |
-|---|---|
-| Not there | Written. |
-| There, hash matches what we wrote, content identical | Nothing. Silent no-op — the file is not even touched. |
-| There, hash matches what we wrote, config changed | Updated. It's ours and nobody edited it. |
-| There, hash differs, or we have no record of it | **Diff shown, file left alone.** |
+```mermaid
+flowchart TD
+    S["Re-run init"] --> Q1{"File exists?"}
+    Q1 -- No --> W["create"]
+    Q1 -- Yes --> Q2{"Hash matches<br/>what we'd write now?"}
+    Q2 -- Yes --> N["unchanged:<br/>not even touched"]
+    Q2 -- No --> Q3{"Manifest has a record,<br/>and it matches<br/>the file on disk?"}
+    Q3 -- "Yes — we wrote it,<br/>config just changed" --> U["update"]
+    Q3 -- "No — untracked,<br/>or hand-edited" --> D["conflict:<br/>diff shown, file left alone"]
+```
 
-Comparing the file to what we'd write cannot distinguish the last two — both differ.
-Only a record of what was last written tells "you edited this" apart from "your config
-changed." That record is why the manifest exists, and why it should be committed: a
-fresh clone without it treats every generated file as foreign and stops to ask about
-all of them.
+`nice-and-tidy.config.json` and the memory file skip this decision tree entirely —
+they're yours from the first write (`kept`), never diffed, whatever they say.
+
+Comparing the file to what we'd write cannot distinguish "you edited this" from "your
+config changed" — both differ from what's on disk. Only a record of what was last
+written tells those apart, which is why the manifest exists and why it should be
+committed: a fresh clone without it treats every generated file as foreign and stops
+to ask about all of them.
 
 When a conflict comes up:
 
