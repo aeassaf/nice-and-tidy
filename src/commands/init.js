@@ -3,8 +3,9 @@ import { detectRepoSlug, findRepoRoot } from '../git.js'
 import { readManifest } from '../manifest.js'
 import { buildPayload, filesFor, inertTargets } from '../payload.js'
 import { CONFLICT, KEPT, UNCHANGED, applyPlan, isConflict, planFiles } from '../plan.js'
+import { ABORTED, NO_TERMINAL, resolveConflicts } from '../resolveConflicts.js'
 import { globalScope, localScope } from '../scope.js'
-import { ACTION_LABEL, CONFLICT_EXPLANATION, bold, createPrompter, dim, printDiff, yellow } from '../ui.js'
+import { ACTION_LABEL, bold, dim, yellow } from '../ui.js'
 
 export const EXIT_OK = 0
 export const EXIT_UNRESOLVED = 1
@@ -64,59 +65,18 @@ export async function init(options) {
   }
 
   const idle = items.every((item) => item.action === UNCHANGED || item.action === KEPT)
-  const conflicts = items.filter(isConflict)
 
-  if (conflicts.length > 0) {
-    const noun = `${conflicts.length} file${conflicts.length === 1 ? '' : 's'}`
-    out(
-      `\n${yellow(
-        dryRun
-          ? `${noun} ${conflicts.length === 1 ? 'differs' : 'differ'} from what an install would write:`
-          : `${noun} would be overwritten:`,
-      )}\n`,
-    )
-    for (const item of conflicts) {
-      out(`\n  ${bold(item.path)} ${dim(`— ${CONFLICT_EXPLANATION[item.reason]}`)}\n`)
-      printDiff(item, out)
-    }
-  }
-
-  const resolutions = new Map()
-
-  if (conflicts.length > 0 && !dryRun) {
-    if (force) {
-      for (const item of conflicts) resolutions.set(item.path, 'overwrite')
-    } else if (keepExisting) {
-      // Recorded rather than left blank. Skipping because the user asked to and
-      // skipping because nobody was around to ask look identical to `applyPlan`, but
-      // only one of them is an answer — and only the other should fail the run.
-      for (const item of conflicts) resolutions.set(item.path, 'skip')
-    } else if (interactive) {
-      const prompter = createPrompter({ input, output })
-      try {
-        for (const item of conflicts) {
-          out(`\n  ${bold(item.path)}\n`)
-          const answer = await prompter.ask()
-          if (answer === 'abort') {
-            out(`\n  aborted — nothing was written.\n`)
-            return EXIT_UNRESOLVED
-          }
-          resolutions.set(item.path, answer === 'overwrite' ? 'overwrite' : 'skip')
-        }
-      } finally {
-        prompter.close()
-      }
-    } else {
-      err(
-        `\nNothing was written. ${conflicts.length} file${conflicts.length === 1 ? '' : 's'} above ` +
-          `${conflicts.length === 1 ? 'differs' : 'differ'} from what this would install, and there is no ` +
-          `terminal here to ask on.\n` +
-          `  --keep-existing   apply everything else and leave those files alone\n` +
-          `  --force           overwrite them\n`,
-      )
-      return EXIT_UNRESOLVED
-    }
-  }
+  const { outcome, resolutions } = await resolveConflicts(items, {
+    force,
+    keepExisting,
+    dryRun,
+    interactive,
+    input,
+    output,
+    out,
+    err,
+  })
+  if (outcome === ABORTED || outcome === NO_TERMINAL) return EXIT_UNRESOLVED
 
   const result = await applyPlan(items, {
     manifest,
