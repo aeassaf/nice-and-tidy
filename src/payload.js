@@ -55,6 +55,8 @@ export function inertTargets(kind, targets) {
   return targets.filter((target) => !available.has(target))
 }
 
+const MEMORY_STARTER_TEMPLATE = 'protocol/MEMORY_STARTER.md.tmpl'
+
 export async function buildPayload(scope, config) {
   const model = viewModel(config)
   const targets = new Set(config.targets)
@@ -75,6 +77,20 @@ export async function buildPayload(scope, config) {
       contents: render(source, model, { origin: `templates/${file.template}` }),
       ownership: GENERATED,
       target: file.target,
+    })
+  }
+
+  // The memory file is scoped to a repo, never a machine — a global install has
+  // nowhere of its own for session notes to belong to. `ownership: USER`, like the
+  // config: written once if nothing is there, then never touched again regardless of
+  // what an agent writes into it afterward. See plan.js — a USER-owned file that
+  // already exists is always KEPT, never diffed or flagged as a conflict.
+  if (scope.kind === 'local') {
+    const source = await readFile(new URL(MEMORY_STARTER_TEMPLATE, TEMPLATE_ROOT), 'utf8')
+    entries.push({
+      path: config.protocol.memoryFile,
+      contents: render(source, model, { origin: `templates/${MEMORY_STARTER_TEMPLATE}` }),
+      ownership: USER,
     })
   }
 
