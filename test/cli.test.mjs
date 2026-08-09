@@ -34,6 +34,7 @@ const INSTALLED = [
   'docs/WORKFLOW.md',
   'docs/BRANCHING.md',
   'docs/COMMIT_CONVENTIONS.md',
+  'docs/SESSION_PROTOCOL.md',
   'CLAUDE.md',
   '.claude/skills/nice-and-tidy/SKILL.md',
   '.github/copilot-instructions.md',
@@ -53,7 +54,7 @@ test('a first init writes the whole set', async (t) => {
   for (const file of INSTALLED) {
     assert.ok(await exists(join(cwd, file)), `${file} was not written`)
   }
-  assert.match(stdout, /9 created/)
+  assert.match(stdout, /10 created/)
 })
 
 test('a second init is a silent no-op and touches nothing', async (t) => {
