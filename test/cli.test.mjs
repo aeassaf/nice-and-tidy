@@ -39,6 +39,7 @@ const INSTALLED = [
   '.claude/skills/nice-and-tidy/SKILL.md',
   '.github/copilot-instructions.md',
   '.cursor/rules/nice-and-tidy.mdc',
+  'docs/RESUME_HERE.md',
   '.nice-and-tidy/manifest.json',
 ]
 
@@ -54,7 +55,7 @@ test('a first init writes the whole set', async (t) => {
   for (const file of INSTALLED) {
     assert.ok(await exists(join(cwd, file)), `${file} was not written`)
   }
-  assert.match(stdout, /10 created/)
+  assert.match(stdout, /11 created/)
 })
 
 test('a second init is a silent no-op and touches nothing', async (t) => {
@@ -95,6 +96,53 @@ test('the config is never rewritten once it exists', async (t) => {
   await cli(['init'], { cwd })
 
   assert.equal(await readFile(path, 'utf8'), mine)
+})
+
+// --- the memory file: created once, owned like the config after that ----------
+
+test('a first init scaffolds the memory file if nothing is there', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+
+  const memory = await readFile(join(cwd, 'docs/RESUME_HERE.md'), 'utf8')
+  assert.match(memory, /Session memory/)
+  assert.match(memory, /docs\/SESSION_PROTOCOL\.md/)
+})
+
+test('a real session write to the memory file survives every later init untouched', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+
+  const written = '# Session memory\n\nPhase 1 done. Phase 2 next.\n'
+  await writeFile(join(cwd, 'docs/RESUME_HERE.md'), written)
+
+  const { code, stdout } = await cli(['init'], { cwd })
+
+  assert.equal(code, 0)
+  assert.doesNotMatch(stdout, /docs\/RESUME_HERE\.md.*conflict/, 'session notes must never read as a conflict')
+  assert.equal(await readFile(join(cwd, 'docs/RESUME_HERE.md'), 'utf8'), written)
+})
+
+test('a custom protocol.memoryFile path is where the scaffold lands', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+
+  const config = JSON.parse(await readFile(join(cwd, 'nice-and-tidy.config.json'), 'utf8'))
+  config.protocol.memoryFile = 'docs/PROGRESS.md'
+  await writeFile(join(cwd, 'nice-and-tidy.config.json'), `${JSON.stringify(config, null, 2)}\n`)
+
+  await cli(['init'], { cwd })
+
+  assert.ok(await exists(join(cwd, 'docs/PROGRESS.md')))
+  assert.equal(await exists(join(cwd, 'docs/RESUME_HERE.md')), true, 'the first scaffold is not deleted on a path change')
+})
+
+test('a global install never scaffolds a memory file — it has no single repo to belong to', async (t) => {
+  const cwd = await tempDir(t)
+  const home = await tempDir(t)
+  await cli(['init', '--global'], { cwd, env: { HOME: home } })
+  assert.equal(await exists(join(home, 'docs/RESUME_HERE.md')), false)
+  assert.equal(await exists(join(home, '.config/nice-and-tidy/docs/RESUME_HERE.md')), false)
 })
 
 // --- the refusals -------------------------------------------------------------

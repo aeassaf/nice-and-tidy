@@ -39,6 +39,7 @@ node bin/cli.js init
 | `.cursor/rules/nice-and-tidy.mdc` | Pointer. |
 | `.claude/skills/nice-and-tidy/SKILL.md` | The workflow as an invocable skill, with the shell commands spelled out. |
 | `nice-and-tidy.config.json` | Yours, after the first write. Never rewritten. |
+| `docs/RESUME_HERE.md` (or wherever `protocol.memoryFile` points) | A starter scaffold, created once if nothing is there. Yours after that, same as the config — a real session's notes are never diffed or flagged as a conflict, whatever they say. |
 | `.nice-and-tidy/manifest.json` | Provenance. Commit it — see below. |
 
 There's no Windsurf shim: Windsurf reads a root `AGENTS.md` natively, and its own
