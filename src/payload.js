@@ -21,11 +21,13 @@ export const toPosix = (path) => path.split(sep).join('/')
  */
 const LOCAL_FILES = [
   { target: 'agents-md', template: 'AGENTS.md.tmpl', path: 'AGENTS.md' },
+  { target: 'agents-md', template: 'workflow/WORKFLOW.md.tmpl', path: 'docs/WORKFLOW.md' },
+  { target: 'agents-md', template: 'workflow/BRANCHING.md.tmpl', path: 'docs/BRANCHING.md' },
+  { target: 'agents-md', template: 'workflow/COMMIT_CONVENTIONS.md.tmpl', path: 'docs/COMMIT_CONVENTIONS.md' },
   { target: 'claude', template: 'shims/CLAUDE.md.tmpl', path: 'CLAUDE.md' },
   { target: 'claude', template: 'skill/SKILL.md.tmpl', path: '.claude/skills/nice-and-tidy/SKILL.md' },
   { target: 'copilot', template: 'shims/copilot-instructions.md.tmpl', path: '.github/copilot-instructions.md' },
   { target: 'cursor', template: 'shims/cursor-rules.mdc.tmpl', path: '.cursor/rules/nice-and-tidy.mdc' },
-  { target: 'windsurf', template: 'shims/windsurfrules.tmpl', path: '.windsurfrules' },
 ]
 
 /**
