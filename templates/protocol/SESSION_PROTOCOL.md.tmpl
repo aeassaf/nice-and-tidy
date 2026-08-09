@@ -1,0 +1,61 @@
+# SESSION_PROTOCOL
+
+Why every session in {{ repo }} ends the way `AGENTS.md` — and, for a session running
+as an installed skill, the skill's own instructions — say it should. Those carry the
+operational short form, read every reply; this file is where the reasoning behind it
+lives once, so neither has to restate it.
+
+## Why concise, by default
+
+Default AI verbosity costs the reader attention they didn't agree to spend. That
+isn't a nice-to-have setting — it ships on, and this is the one place that says why
+instead of just asserting it.
+
+**Always:** concise, complete, straight to the point. State results and decisions
+directly. No restating the request, no narrating steps about to be taken, no padding.
+
+## The status block
+
+Every substantive reply ends with a compact block. Omit a line entirely when there's
+nothing to report for it — never print "None" as filler:
+
+- **Questions pending** — brief bullets, awaiting {{ assignee }}.
+- **Progress** — % complete on the current task or milestone.
+- **Git/PR status** — branch, clean or uncommitted, PR number and state.
+- **Expected next input** — what {{ assignee }} should say next. If the session can
+  compact its own context or start fresh, and the conversation has grown long, say so
+  here — capability-gated phrasing, never a named command.
+
+## Ending a session
+
+At a real stopping point — not after every message:
+
+- **Done this session** — brief, complete bullets.
+- **Planned for next session** — brief, complete bullets.
+- **Memory handoff** — enough state that the next session can pick up cold, written
+  to **`{{ memoryFile }}`** and nowhere else.
+
+Push everything, update the issue and PR, leave the working tree clean, before
+signing off. This is a handoff, not a pause.
+
+## Why memory is a file, never a GitHub comment
+
+Two different things get updated at the end of a session, and they don't belong in
+the same place:
+
+- **Issue and PR *fields*** — status, labels, milestone, assignee, links — are real
+  project data. They keep being updated on GitHub, exactly as `WORKFLOW.md` describes.
+- **An agent's running account of its own sessions** — what it tried, what it
+  learned, where it stopped — is not project data. It goes in `{{ memoryFile }}`,
+  never to an issue comment, a PR comment, or a board note.
+
+GitHub stays exactly as readable to a human as it would be if no agent had ever
+touched this repo. This is not a preference a capable agent gets to override — there
+is no GitHub-comment option, for any target, regardless of what it's able to do.
+
+## What isn't checkable from inside a session
+
+Nothing in this repo mechanically verifies that a reply actually ended with the
+status block above — there's no test that can observe a live conversation. The
+closest thing to a gate is the discipline of following this file itself, every reply,
+including the one that just generated it.

@@ -33,6 +33,7 @@ node bin/cli.js init
 | `docs/WORKFLOW.md` | The issue → PR → board process, in full — the companion `AGENTS.md` §1–5 summarize. |
 | `docs/BRANCHING.md` | The branch table and naming rule, structurally different under `gitflow: true`/`false`. |
 | `docs/COMMIT_CONVENTIONS.md` | The commit type table and format. |
+| `docs/SESSION_PROTOCOL.md` | Why replies are concise and sessions hand off through a file — the rationale `AGENTS.md` §6–7 and the Skill's operational rules point back to. |
 | `CLAUDE.md` | A one-line import of `AGENTS.md`, plus notes for sessions that can act on the repo directly. |
 | `.github/copilot-instructions.md` | Pointer. |
 | `.cursor/rules/nice-and-tidy.mdc` | Pointer. |
