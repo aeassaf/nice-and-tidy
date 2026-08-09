@@ -1,0 +1,48 @@
+{
+  "repo": "aeassaf/nice-and-tidy",
+  "defaultAssignee": "aeassaf",
+  "gitflow": false,
+  "milestones": [
+    "Phase 1",
+    "Phase 2",
+    "Phase 3",
+    "Phase 4",
+    "Phase 5",
+    "Phase 6",
+    "Phase 7",
+    "Phase 8"
+  ],
+  "labels": [
+    "bug",
+    "enhancement",
+    "documentation",
+    "tech-debt",
+    "gate",
+    "needs-antoine",
+    "question"
+  ],
+  "scopes": [
+    "cli",
+    "config",
+    "templates",
+    "skill",
+    "docs",
+    "ci"
+  ],
+  "board": {
+    "projectNumber": null,
+    "template": "team-planning"
+  },
+  "targets": [
+    "agents-md",
+    "claude",
+    "copilot",
+    "cursor",
+    "windsurf"
+  ],
+  "protocol": {
+    "concise": true,
+    "memoryFile": "docs/RESUME_HERE.md",
+    "statusBlockEveryResponse": true
+  }
+}
