@@ -1,0 +1,28 @@
+name: CI
+
+# Authored fresh for this project, not copied from a reference file — see
+# docs/RESUME_HERE.md for why. Adjust to whatever this repo actually needs to build
+# and test; this is a starting point, not a fixed contract.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm test
