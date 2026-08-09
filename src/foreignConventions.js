@@ -48,7 +48,10 @@ export async function scanForeignConventions(root) {
       try {
         content = await readFile(join(root, entry.path), 'utf8')
       } catch (error) {
-        if (error.code !== 'ENOENT') throw error
+        // ENOENT: nothing there. EISDIR: something's there, but not the single-file
+        // convention this entry means — e.g. a `.clinerules/` directory shape at a
+        // path that, for a different tool, is a flat file. Neither is a hit.
+        if (error.code !== 'ENOENT' && error.code !== 'EISDIR') throw error
       }
 
       return {

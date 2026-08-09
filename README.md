@@ -234,8 +234,10 @@ do. Otherwise `clean` shows the file like a conflict (same diff `init` shows for
 hand-edited file) and asks before writing anything; `--dry-run` only reports, and
 with no terminal to ask on and no `--force`, it reports and writes nothing, same as
 `init`. **It never deletes.** The only mutation is replacing a file's contents with a
-generic pointer to `AGENTS.md` — recoverable through git, and the file still exists
-in case something checks for its presence.
+generic pointer to `AGENTS.md` — recoverable through git *if the file was already
+tracked*, and the file still exists in case something checks for its presence. It
+shows the diff and asks first precisely because an untracked file's old contents
+are not recoverable at all.
 
 The registry is intentionally short. `.clinerules` isn't in it: Cline does not read
 `AGENTS.md` natively as of this writing, so `.clinerules` is a *live* convention
