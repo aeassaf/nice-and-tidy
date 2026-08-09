@@ -15,15 +15,20 @@ Two things get installed from one command:
 Both were hand-derived on a real repo over several days. This exists so they don't
 have to be re-derived per project.
 
+```bash
+npx nice-and-tidy init
+```
+
+Zero runtime dependencies, so that's a cold start with nothing to download.
+
 ## Status
 
-Early. `init` and `diff` work. `bootstrap` does not exist yet and says so when you run
-it rather than pretending. Not published to npm — the package is marked private until
-that's a deliberate decision.
+`init`, `diff` and `bootstrap` all work. 124 tests, mostly negative.
 
-```bash
-node bin/cli.js init
-```
+Two limits worth knowing before you adopt it, both covered in more detail below:
+nothing lints commit messages — the convention is a convention — and `bootstrap`
+cannot create a Project board, because GitHub exposes no API for cloning a board
+template. It prints the manual steps instead of pretending otherwise.
 
 ## What `init` writes
 
@@ -44,9 +49,10 @@ node bin/cli.js init
 
 There's no Windsurf shim: Windsurf reads a root `AGENTS.md` natively, and its own
 docs describe `.windsurfrules` as the deprecated file that support replaced — shipping
-one would be dead weight, not defense in depth. Re-checked whenever a target's native
-support might have changed; see `docs/RESUME_HERE.md` for when this was last verified
-and against what sources.
+one would be dead weight, not defense in depth. Every entry in `targets` is a claim
+about what a third-party tool reads *today*, so each is worth re-checking against that
+tool's own docs; native `AGENTS.md` support is exactly the kind of thing that lands in
+a point release and turns a useful shim into dead weight.
 
 The instruction files never name a specific agent or product. Depth is gated by
 capability instead: *"if you can run shell commands…"*, *"if your session can compact
@@ -92,7 +98,7 @@ A skipped conflict stays a conflict. Nothing silently adopts a file you edited.
 ```bash
 nice-and-tidy init          # write the instruction files and the config
 nice-and-tidy diff          # show what init would change, write nothing
-nice-and-tidy bootstrap     # GitHub-side setup — not implemented yet
+nice-and-tidy bootstrap     # GitHub-side setup: PR template, gate, CI, labels, milestones
 ```
 
 | Flag | |
@@ -103,8 +109,27 @@ nice-and-tidy bootstrap     # GitHub-side setup — not implemented yet
 | `--force` | Overwrite conflicts without asking. |
 | `--gitflow` / `--no-gitflow` | Branch model. Only applies when creating the config. |
 
-Exit codes: `0` fine, `1` unresolved conflicts, `2` bad usage or bad config, `3` not
-implemented.
+Exit codes: `0` fine, `1` unresolved conflicts, `2` bad usage or bad config, `3`
+`bootstrap` only — `gh` is missing or not logged in, and nothing was contacted.
+
+### `bootstrap`
+
+Everything `init` deliberately doesn't touch, because it needs the network:
+
+| What | Notes |
+|---|---|
+| `.github/pull_request_template.md` | Through the same plan/manifest pipeline as `init`'s files — your edits are diffed and asked about, not clobbered. |
+| `scripts/check-pr-description.mjs` + `.github/workflows/pr-description.yml` | A dependency-free gate that fails a PR whose template sections are still the guidance comments. |
+| `.github/workflows/ci.yml` | A minimal npm starting point. Adjust it. |
+| Labels and milestones | Created from config, skipping any that already exist. Re-runnable. |
+
+It needs `gh` installed and authenticated, and exits `3` without touching anything if
+that isn't true. The default-branch flip under `gitflow: true` is **printed, never
+run** — that's a repo-wide change a human should make deliberately.
+
+No Project board is created. `gh project create` only produces a blank project, and
+the GraphQL mutation that could clone a template needs a source ID GitHub doesn't
+expose to a token. `docs/WORKFLOW.md` documents the three manual steps instead.
 
 ### `--global`
 
@@ -172,7 +197,7 @@ download. Node 20.19+.
 npm test
 ```
 
-101 tests, mostly negative. An engine whose job is "do not destroy the user's work" is
+124 tests, mostly negative. An engine whose job is "do not destroy the user's work" is
 only trustworthy if something proves it refuses.
 
 ## Licence
