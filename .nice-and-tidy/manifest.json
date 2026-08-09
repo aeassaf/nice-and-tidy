@@ -12,7 +12,7 @@
     "docs/BRANCHING.md": "ebedc7fe481424074d3615186a5168004796ace011e08cc4050267aec55d63bb",
     "docs/COMMIT_CONVENTIONS.md": "ffa2d5cca8244ded26b4c1620aa5c3b3bb235e37c388adbc6c7c309359fc16f3",
     "docs/SESSION_PROTOCOL.md": "f99182dca7736ad7ddd7405475be097e7947bf2806e354e78539a46506cc52b2",
-    "docs/WORKFLOW.md": "4b4b21a680367d2c8de0bb7942aa60da29ba9c5d7be1c94fb6c9af1fe61ab158",
+    "docs/WORKFLOW.md": "20bc82b786a2f91aaf03ca0ca3842394ac64949e81b98234af4a59238ba976ec",
     "nice-and-tidy.config.json": "d10780d4a408f581cd9cd1edc4ceb51193768c4124a85ff7388ddeb72cf1e1fc",
     "scripts/check-pr-description.mjs": "a81c2a21cb5d240b8f5c1b7a3a933b663d5e2c9563514e8ed44dbac8a82aadcc",
     "scripts/check-pr-description.test.mjs": "66e4e72f0f5c750cf430642bc284ae9e8edc6f022a51e7163ad368a69eaac5ea"
