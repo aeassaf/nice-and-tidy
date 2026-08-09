@@ -31,11 +31,13 @@ async function cli(args, { cwd, env = {} } = {}) {
 const INSTALLED = [
   'nice-and-tidy.config.json',
   'AGENTS.md',
+  'docs/WORKFLOW.md',
+  'docs/BRANCHING.md',
+  'docs/COMMIT_CONVENTIONS.md',
   'CLAUDE.md',
   '.claude/skills/nice-and-tidy/SKILL.md',
   '.github/copilot-instructions.md',
   '.cursor/rules/nice-and-tidy.mdc',
-  '.windsurfrules',
   '.nice-and-tidy/manifest.json',
 ]
 
@@ -51,7 +53,7 @@ test('a first init writes the whole set', async (t) => {
   for (const file of INSTALLED) {
     assert.ok(await exists(join(cwd, file)), `${file} was not written`)
   }
-  assert.match(stdout, /7 created/)
+  assert.match(stdout, /9 created/)
 })
 
 test('a second init is a silent no-op and touches nothing', async (t) => {
@@ -187,8 +189,9 @@ test('targets decides what gets installed', async (t) => {
 
   assert.equal(code, 0)
   assert.ok(await exists(join(cwd, 'AGENTS.md')))
+  assert.ok(await exists(join(cwd, 'docs/WORKFLOW.md')), 'workflow docs are agents-md-gated, not shim-gated')
   assert.equal(await exists(join(cwd, 'CLAUDE.md')), false)
-  assert.equal(await exists(join(cwd, '.windsurfrules')), false)
+  assert.equal(await exists(join(cwd, '.cursor/rules/nice-and-tidy.mdc')), false)
 })
 
 // --- global -------------------------------------------------------------------
@@ -212,7 +215,7 @@ test('a global install writes under the home directory and says what it did not 
 test('a global install names the targets it has nothing for, rather than pretending', async (t) => {
   const home = await tempDir(t)
   const { stdout } = await cli(['init', '--global'], { cwd: await tempDir(t), env: { HOME: home } })
-  assert.match(stdout, /copilot, cursor, windsurf/)
+  assert.match(stdout, /copilot, cursor/)
 })
 
 // --- usage errors -------------------------------------------------------------
