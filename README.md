@@ -26,6 +26,27 @@ npx nice-and-tidy init
   gate), and `bootstrap` can't create a Project board because GitHub exposes no API
   for cloning the board template — it prints the three manual steps instead.
 
+## Conventions
+
+This repo is installed on itself, so the docs below are the same ones `init` writes
+into any repo that runs it — they describe this repo, not a hypothetical one. Each is
+a dedicated, human-readable doc, not a paragraph buried in this README:
+
+| Convention | Where |
+|---|---|
+| Issues, PRs, and keeping the board honest | [`docs/WORKFLOW.md`](https://github.com/aeassaf/nice-and-tidy/blob/main/docs/WORKFLOW.md) |
+| Branch naming | [`docs/BRANCHING.md`](https://github.com/aeassaf/nice-and-tidy/blob/main/docs/BRANCHING.md) |
+| Commit messages | [`docs/COMMIT_CONVENTIONS.md`](https://github.com/aeassaf/nice-and-tidy/blob/main/docs/COMMIT_CONVENTIONS.md) |
+| How an agent replies, and hands a session off | [`docs/SESSION_PROTOCOL.md`](https://github.com/aeassaf/nice-and-tidy/blob/main/docs/SESSION_PROTOCOL.md) |
+
+[`AGENTS.md`](https://github.com/aeassaf/nice-and-tidy/blob/main/AGENTS.md) is the
+short form all four compress down to — the file an agent actually reads day to day.
+The docs above are where the *why* lives, for when the short form isn't enough.
+
+These links are absolute GitHub URLs on purpose: this README also ships as the
+npmjs.com package page, and `docs/` and the root `AGENTS.md` aren't in the published
+tarball — only `templates/AGENTS.md.tmpl` is. A relative link would 404 there.
+
 ## Example
 
 ```
