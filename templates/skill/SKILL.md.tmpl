@@ -24,6 +24,10 @@ out — and fills the gaps when a repository has no `AGENTS.md` of its own.
 5. Board Status tracks reality: branch but no PR → *In progress*; PR open → *In
    review*; PR merged → *Done*. Merging does not move the board field for you.
 6. Reply concisely and end with a status block. End a session with a handoff.
+7. If the session can run on more than one capability tier or effort setting, size
+   the issue (from the board's Size field, or your own estimate) before starting,
+   recommend a minimum tier/effort, and restate it every reply. Prefer compacting or
+   a fresh session over carrying context across a tier switch.
 
 ## Executing it
 
