@@ -25,7 +25,8 @@ The target shape, from GitHub's own default team-planning template:
 
 - **Status**: `Backlog · Ready · In progress · In review · Done`.
 - **Priority**: `P0 · P1 · P2`.
-- **Size**: `XS · S · M · L · XL`.
+- **Size**: `XS · S · M · L · XL`. Also feeds the model/effort sizing step in
+  `AGENTS.md` §1 — see `SESSION_PROTOCOL.md`.
 
 **`bootstrap` does not create this board.** Researched, not assumed: neither `gh
 project create` nor the GraphQL API can instantiate GitHub's built-in team-planning

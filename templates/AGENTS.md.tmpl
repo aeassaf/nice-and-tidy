@@ -32,6 +32,15 @@ the work instead — a made-up number is worse than an honest gap.
 One issue per session. A session that touches three unrelated issues produces a diff
 nobody can review and a handoff nobody can read.
 
+**If your session can run on more than one capability tier or reasoning-effort
+setting**, size the issue before spending real effort on it — the same way whether it
+already existed or you just created it above. Read the board's Size field (`XS`–`XL`)
+if the issue has one; otherwise estimate it yourself and say that's what you're
+doing — an estimate is stated in your reply, never written to a GitHub field the
+board doesn't have. State the minimum tier/effort you'd recommend — `docs/SESSION_PROTOCOL.md`
+has the sizing table — and ask whether to continue on the current one or switch
+before writing any code. **If you can't**, skip this and say so.
+
 ## 2. Branches
 
 Full branch table and naming rationale: `docs/BRANCHING.md`.
@@ -146,6 +155,10 @@ nothing to report — never print "None" as filler.**
 - **Expected next input** — what the user should say next. **If your session has a
   way to compact its own context or hand off to a fresh session**, and this
   conversation has grown long, recommend doing that here.
+- **Model guidance** — **if your session runs on more than one capability tier or
+  effort setting**, state the minimum tier/effort the next step needs, every
+  substantive reply — not only when it changes. Call it out explicitly if the work
+  has outgrown the tier you started on.
 
 ## 7. Ending a session
 

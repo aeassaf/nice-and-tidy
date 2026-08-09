@@ -25,6 +25,43 @@ nothing to report for it — never print "None" as filler:
 - **Expected next input** — what aeassaf should say next. If the session can
   compact its own context or start fresh, and the conversation has grown long, say so
   here — capability-gated phrasing, never a named command.
+- **Model guidance** — if the session runs on more than one capability tier or effort
+  setting, state the minimum the next step needs, every substantive reply, changed or
+  not — this line doesn't follow the "omit if nothing to report" rule above, because
+  there's always a current recommendation to state. A session with no tiers to choose
+  between omits the whole line instead.
+
+## Sizing an issue before spending effort on it
+
+Committing a high-capability tier and high reasoning effort to a one-line typo fix
+wastes budget. Committing a low tier to a genuinely hard problem produces a
+plausible-looking wrong answer, which costs more to unwind than the tier saved.
+
+**If the session can run on more than one tier or effort setting**, size the issue
+the same way whether it already existed or was just created for work described in
+chat: read the board's Size field if the issue has one, or estimate it the same way
+yourself if it doesn't and say that's what you're doing. `WORKFLOW.md` already rules
+out faking Priority/Size with labels when there's no board — the same rule applies
+here: an estimate lives in the reply, never in a GitHub field the board doesn't have.
+
+| Size | Suggested minimum |
+|---|---|
+| `XS` / `S` | The lightest tier available, low effort. |
+| `M` | A middle tier, default effort. |
+| `L` / `XL` | The most capable tier available, high effort. |
+
+State the recommendation in capability terms, never as a specific product or model
+name — the same rule that governs "compact or start fresh" above governs this. Then
+ask: continue on the current tier, or switch?
+
+**If switching**, don't carry a long conversation across the switch — compact the
+session's context first, or start a fresh session on the target tier and hand it the
+GitHub issue number. A fresh session can re-derive what it needs from the issue; a
+long conversation dragged across a tier change usually can't be trusted to have
+carried the right parts of itself along.
+
+This table is a starting point, not a gate — nothing mechanically enforces it, the
+same way nothing enforces the rest of this file.
 
 ## Ending a session
 
