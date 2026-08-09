@@ -18,7 +18,12 @@ export const CONFIG_FILENAME = 'nice-and-tidy.config.json'
  * this tool already writes — and its own docs describe `.windsurfrules` as the
  * deprecated predecessor to that support, not a currently-recommended format. A shim
  * that points a deprecated file at a *replacement* mechanism is dead weight, not
- * defense in depth; see the per-target research recorded in `docs/RESUME_HERE.md`.
+ * defense in depth.
+ *
+ * Every entry here is a claim about what a third-party tool reads today, so each one
+ * is worth re-checking against that tool's own docs before it is trusted — native
+ * `AGENTS.md` support is exactly the kind of thing that lands in a point release and
+ * turns a useful shim into dead weight.
  */
 export const TARGETS = ['agents-md', 'claude', 'copilot', 'cursor']
 
