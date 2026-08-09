@@ -25,18 +25,24 @@ const USAGE = `nice-and-tidy — an issue-first Git workflow and session protoco
 Usage
   nice-and-tidy init [options]        write the instruction files and the config
   nice-and-tidy diff [options]        show what init would change, write nothing
-  nice-and-tidy bootstrap             one-time GitHub-side setup (not implemented yet)
+  nice-and-tidy bootstrap [options]   one-time GitHub-side setup: PR template, its
+                                       description gate, labels, milestones
 
 Options
   -g, --global        install for the current user instead of the current repo
       --local         install into the current repo (the default)
-      --dry-run       same as \`diff\`
+      --dry-run       same as \`diff\` for init; for bootstrap, report without creating anything
       --keep-existing apply everything except files that differ, and leave those alone
       --force         overwrite files that differ, without asking
       --gitflow       branch off develop            (only when creating the config)
       --no-gitflow    branch off main, trunk-based  (only when creating the config)
   -h, --help          show this
   -v, --version       print the version
+
+\`bootstrap\` needs \`nice-and-tidy init\` run first (it reads the config init writes)
+and \`gh\` installed and logged in. It creates labels and milestones from config —
+skipping ones that already exist — and prints, but never runs, the command to flip
+the repository's default branch.
 
 Re-running is safe. A file this tool wrote and nobody touched gets updated; a file
 somebody edited gets shown as a diff and left alone unless you say otherwise.
@@ -99,7 +105,7 @@ async function main(argv) {
     case 'diff':
       return init({ ...shared, dryRun: true, force: false, keepExisting: false })
     case 'bootstrap':
-      return bootstrap({})
+      return bootstrap({ ...shared, dryRun: values['dry-run'] })
     default:
       process.stderr.write(`Unknown command "${command}".\n\nRun \`nice-and-tidy --help\`.\n`)
       return EXIT_USAGE

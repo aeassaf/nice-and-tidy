@@ -84,12 +84,18 @@ test('every placeholder used is one the view model defines', async () => {
   }
 })
 
+// A leftover `{{` is our engine's syntax unresolved — except GitHub Actions' own
+// `${{ expression }}` runtime syntax, which is `{{` too, always preceded by `$`.
+// Our engine's placeholders never are, so the lookbehind tells the two apart without
+// having to special-case workflow files.
+const UNFILLED = /(?<!\$)\{\{/
+
 for (const gitflow of [true, false]) {
   test(`every template renders cleanly with gitflow: ${gitflow}`, async () => {
     const model = viewModel(defaultConfig({ gitflow }))
     for (const file of await templateFiles()) {
       const rendered = render(await read(file), model, { origin: file })
-      assert.doesNotMatch(rendered, /\{\{/, `${file.replace(TEMPLATES, '')} still has an unfilled placeholder`)
+      assert.doesNotMatch(rendered, UNFILLED, `${file.replace(TEMPLATES, '')} still has an unfilled placeholder`)
     }
   })
 }

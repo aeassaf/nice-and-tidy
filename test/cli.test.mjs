@@ -250,11 +250,10 @@ test('an invalid config refuses to run and says why', async (t) => {
   assert.equal(await exists(join(cwd, 'AGENTS.md')), false)
 })
 
-test('bootstrap refuses loudly instead of pretending to work', async (t) => {
+test('bootstrap refuses loudly rather than guessing when init has not run yet', async (t) => {
   const { code, stderr } = await cli(['bootstrap'], { cwd: await tempDir(t) })
-  assert.equal(code, 3)
-  assert.match(stderr, /not implemented yet/)
-  assert.match(stderr, /Nothing was created, changed or contacted/)
+  assert.equal(code, 2)
+  assert.match(stderr, /run.*init.*first/i)
 })
 
 // --- the non-negotiable, at the surface a person sees -------------------------
