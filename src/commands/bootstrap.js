@@ -21,8 +21,10 @@ export const EXIT_NOT_READY = 3
  * milestones are separate GitHub API calls with no local file to diff, so they get
  * their own "skip what already exists" logic instead.
  *
- * What this does not do: the Project board (a separate, larger piece of setup — see
- * `docs/RESUME_HERE.md`) and flipping the default branch, which it only ever prints.
+ * What this does not do: the Project board — GitHub exposes no API for cloning a
+ * built-in project template, so it cannot be scripted without hand-written GraphQL;
+ * `docs/WORKFLOW.md` documents the manual steps instead. Nor does it flip the
+ * default branch, which it only ever prints for a human to run.
  */
 export async function bootstrap(options) {
   const {

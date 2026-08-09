@@ -1,8 +1,8 @@
 name: CI
 
-# Authored fresh for this project, not copied from a reference file — see
-# docs/RESUME_HERE.md for why. Adjust to whatever this repo actually needs to build
-# and test; this is a starting point, not a fixed contract.
+# A deliberately minimal starting point: install, then `npm test`. It assumes an npm
+# project and nothing else. Adjust it to whatever this repo actually needs to build
+# and test — this is a starting point, not a fixed contract.
 on:
   push:
     branches: [main]
