@@ -45,9 +45,6 @@ was free on the registry as of this session.
    than one repo depends on this.
 3. **`config.board.projectNumber`** — nothing reads it today, even when set. Decide
    whether anything should, once a real board exists to test against.
-4. **Proving it on a second repo.** The tool has only ever been run on itself. An
-   install into an unrelated trunk-based repo is the missing evidence. Not a blocker
-   for publishing, but the first thing worth doing after.
 
 ## Known gaps
 
@@ -73,7 +70,11 @@ was free on the registry as of this session.
 ## Next
 
 - Run `npm publish` (a human action) if the release is wanted now.
-- Install into an unrelated repo and see what breaks. That is the real test.
+
+The plan originally had a phase for installing into a second, unrelated repo and
+diffing for drift. It was dropped without being started (#16) — a deliberate scope
+decision, not an oversight. The tool has therefore only ever been run against this
+repo, which is worth knowing when judging how much the passing suite proves.
 
 ## Running it
 
