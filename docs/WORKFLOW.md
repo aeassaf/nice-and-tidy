@@ -21,18 +21,35 @@ of truth for the *process*. Two companions cover what this file doesn't:
 
 ## The board
 
-`bootstrap` creates the Project board from GitHub's own default team-planning
-template — no custom field creation to write or maintain:
+The target shape, from GitHub's own default team-planning template:
 
 - **Status**: `Backlog · Ready · In progress · In review · Done`.
 - **Priority**: `P0 · P1 · P2`.
 - **Size**: `XS · S · M · L · XL`.
 
-Field and option IDs are specific to the board `bootstrap` creates in *this* repo —
-they get appended below the first time `bootstrap` runs, and are re-queried, never
-reused from memory or from this document, on every write after that:
+**`bootstrap` does not create this board.** Researched, not assumed: neither `gh
+project create` nor the GraphQL API can instantiate GitHub's built-in team-planning
+template — `gh project create` only ever produces a blank project (a 3-option Status
+field, no Priority or Size), and `copyProjectV2` needs the template's project ID,
+which isn't exposed anywhere a token can read it. Getting the exact shape above
+without hand-written GraphQL means going through the one place that template still
+exists: the web UI.
 
-<!-- populated by `bootstrap` -->
+1. **Create it once, by hand:** github.com → Projects → New project → **Team
+   planning**. This gets the Status/Priority/Size shape above with zero scripting.
+2. **Link it to the repo:**
+   ```bash
+   gh project link <number> --owner <owner> --repo aeassaf/nice-and-tidy
+   ```
+3. **Read the field and option IDs whenever a write needs them** — never cache them
+   here or anywhere else; a stale ID writes the wrong value to the wrong field
+   without erroring:
+   ```bash
+   gh project field-list <number> --owner <owner> --format json
+   ```
+
+Everything after that — adding issues, moving Status, filling Priority/Size —
+is the `gh project item-*` scripting `AGENTS.md` §5 and the Skill already cover.
 
 ## What "all fields filled" means concretely
 
