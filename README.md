@@ -30,13 +30,21 @@ node bin/cli.js init
 | Path | What it is |
 |---|---|
 | `AGENTS.md` | The canonical instructions. Everything else points here. |
+| `docs/WORKFLOW.md` | The issue → PR → board process, in full — the companion `AGENTS.md` §1–5 summarize. |
+| `docs/BRANCHING.md` | The branch table and naming rule, structurally different under `gitflow: true`/`false`. |
+| `docs/COMMIT_CONVENTIONS.md` | The commit type table and format. |
 | `CLAUDE.md` | A one-line import of `AGENTS.md`, plus notes for sessions that can act on the repo directly. |
 | `.github/copilot-instructions.md` | Pointer. |
 | `.cursor/rules/nice-and-tidy.mdc` | Pointer. |
-| `.windsurfrules` | Pointer. |
 | `.claude/skills/nice-and-tidy/SKILL.md` | The workflow as an invocable skill, with the shell commands spelled out. |
 | `nice-and-tidy.config.json` | Yours, after the first write. Never rewritten. |
 | `.nice-and-tidy/manifest.json` | Provenance. Commit it — see below. |
+
+There's no Windsurf shim: Windsurf reads a root `AGENTS.md` natively, and its own
+docs describe `.windsurfrules` as the deprecated file that support replaced — shipping
+one would be dead weight, not defense in depth. Re-checked whenever a target's native
+support might have changed; see `docs/RESUME_HERE.md` for when this was last verified
+and against what sources.
 
 The instruction files never name a specific agent or product. Depth is gated by
 capability instead: *"if you can run shell commands…"*, *"if your session can compact
@@ -117,7 +125,7 @@ that.
   "labels": ["bug", "enhancement"],
   "scopes": ["cli", "docs"],
   "board": { "projectNumber": null, "template": "team-planning" },
-  "targets": ["agents-md", "claude", "copilot", "cursor", "windsurf"],
+  "targets": ["agents-md", "claude", "copilot", "cursor"],
   "protocol": {
     "concise": true,
     "memoryFile": "docs/RESUME_HERE.md",

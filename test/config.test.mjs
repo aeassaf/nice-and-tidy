@@ -125,9 +125,19 @@ test('a partial config is filled in from the defaults', async (t) => {
 
 // --- view model ---------------------------------------------------------------
 
-test('the view model is strings all the way down', () => {
+// Phase 1's invariant was "strings all the way down" — nothing else was renderable.
+// Phase 2 adds `{{#if flag}}`, which needs booleans, so the invariant narrows to:
+// every key is a string (for `{{ }}`) or a named conditional flag (for `{{#if }}`),
+// never anything else a template author could reach for by accident.
+const CONDITIONAL_FLAGS = ['gitflow']
+
+test('the view model is strings, except for the named conditional flags', () => {
   for (const [key, value] of Object.entries(viewModel(defaultConfig()))) {
-    assert.equal(typeof value, 'string', `${key} must be a string — templates cannot render anything else`)
+    if (CONDITIONAL_FLAGS.includes(key)) {
+      assert.equal(typeof value, 'boolean', `${key} is a conditional flag and must be a boolean`)
+    } else {
+      assert.equal(typeof value, 'string', `${key} must be a string — templates cannot render anything else`)
+    }
   }
 })
 

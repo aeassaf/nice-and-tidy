@@ -49,3 +49,51 @@ test('a value that is itself a placeholder is not re-expanded', () => {
 test('placeholdersIn lists each key once, sorted', () => {
   assert.deepEqual(placeholdersIn('{{ b }} {{ a }} {{ b }}'), ['a', 'b'])
 })
+
+// --- conditionals ---------------------------------------------------------------
+
+test('an if block keeps its body when the flag is true', () => {
+  assert.equal(render('{{#if gitflow}}develop{{/if}}', { gitflow: true }), 'develop')
+})
+
+test('an if block drops its body when the flag is false', () => {
+  assert.equal(render('{{#if gitflow}}develop{{/if}}', { gitflow: false }), '')
+})
+
+test('an if/else block picks the matching branch', () => {
+  const source = '{{#if gitflow}}develop{{else}}main{{/if}}'
+  assert.equal(render(source, { gitflow: true }), 'develop')
+  assert.equal(render(source, { gitflow: false }), 'main')
+})
+
+test('a placeholder inside a conditional branch is still substituted', () => {
+  const source = '{{#if gitflow}}base: {{ baseBranch }}{{/if}}'
+  assert.equal(render(source, { gitflow: true, baseBranch: 'develop' }), 'base: develop')
+})
+
+test('a dropped branch does not have to satisfy the placeholder rules', () => {
+  // The else branch below mentions {{ nope }}, which is not in the model — it never
+  // has to be, because gitflow: true never renders it.
+  const source = '{{#if gitflow}}fine{{else}}{{ nope }}{{/if}}'
+  assert.equal(render(source, { gitflow: true }), 'fine')
+})
+
+test('an unknown flag throws instead of shipping both branches unresolved', () => {
+  assert.throws(() => render('{{#if nope}}a{{/if}}', {}), TemplateError)
+})
+
+test('a non-boolean flag is refused', () => {
+  assert.throws(() => render('{{#if repo}}a{{/if}}', { repo: 'owner/name' }), TemplateError)
+})
+
+test('placeholdersIn does not mistake {{else}} for a scalar placeholder named "else"', () => {
+  assert.deepEqual(placeholdersIn('{{#if gitflow}}a{{else}}b{{/if}}'), [])
+})
+
+test('if blocks do not nest', () => {
+  // Documented, not supported: the lazy match closes on the *inner* {{/if}}, so the
+  // outer block's body is read as "{{#if b}}x" and the true outer closing tag is left
+  // dangling as literal text in the output.
+  const source = '{{#if a}}{{#if b}}x{{/if}}{{/if}}'
+  assert.equal(render(source, { a: true, b: true }), '{{#if b}}x{{/if}}')
+})

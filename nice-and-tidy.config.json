@@ -37,8 +37,7 @@
     "agents-md",
     "claude",
     "copilot",
-    "cursor",
-    "windsurf"
+    "cursor"
   ],
   "protocol": {
     "concise": true,

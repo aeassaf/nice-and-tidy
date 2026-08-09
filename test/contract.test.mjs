@@ -133,7 +133,7 @@ test('the instruction file forbids fabricating GitHub identifiers', async () => 
 
 test('every shim points at AGENTS.md rather than forking it', async () => {
   const shims = (await templateFiles()).filter((file) => file.includes(`${join('templates', 'shims')}`))
-  assert.ok(shims.length >= 4)
+  assert.ok(shims.length >= 3)
   for (const file of shims) {
     assert.match(await read(file), /AGENTS\.md/, `${file.replace(TEMPLATES, '')} does not point at AGENTS.md`)
   }

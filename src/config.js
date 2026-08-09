@@ -11,8 +11,16 @@ import { readFile } from 'node:fs/promises'
  */
 export const CONFIG_FILENAME = 'nice-and-tidy.config.json'
 
-/** Install targets. `agents-md` is the source of truth; the rest point at it. */
-export const TARGETS = ['agents-md', 'claude', 'copilot', 'cursor', 'windsurf']
+/**
+ * Install targets. `agents-md` is the source of truth; the rest point at it.
+ *
+ * `windsurf` isn't here. Windsurf reads a root `AGENTS.md` natively — the same file
+ * this tool already writes — and its own docs describe `.windsurfrules` as the
+ * deprecated predecessor to that support, not a currently-recommended format. A shim
+ * that points a deprecated file at a *replacement* mechanism is dead weight, not
+ * defense in depth; see the per-target research recorded in `docs/RESUME_HERE.md`.
+ */
+export const TARGETS = ['agents-md', 'claude', 'copilot', 'cursor']
 
 const USERNAME = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/
 const REPO_SLUG = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/
@@ -197,15 +205,16 @@ export function serialiseConfig(config) {
 }
 
 /**
- * Flattens config into the strings templates are allowed to substitute.
- *
- * Everything here is a string on purpose — see `template.js`. Anything whose *shape*
- * depends on config (the Gitflow-only branch rows) is absent by design; Phase 2 adds
- * the conditionals that make those expressible.
+ * Flattens config into what templates are allowed to render: strings for
+ * `{{ placeholder }}`, plus the small set of named booleans for `{{#if flag }}` —
+ * see `template.js`. Nothing else survives this function; a template that needs a
+ * new conditional gets a new named boolean here, not an object or array passed
+ * through directly.
  */
 export function viewModel(config) {
   const gitflow = config.gitflow !== false
   const scopes = config.scopes ?? []
+  const labels = config.labels ?? []
 
   return {
     repo: config.repo ?? 'this repository',
@@ -219,5 +228,13 @@ export function viewModel(config) {
       scopes.length > 0
         ? scopes.map((s) => `\`${s}\``).join(', ')
         : 'no scopes are configured yet, so omit the parenthetical',
+    labels:
+      labels.length > 0
+        ? labels.map((l) => `\`${l}\``).join(', ')
+        : 'no labels are configured yet — use whatever the repo already has',
+    // Boolean, for `{{#if gitflow}}` — every other key above is a string, for
+    // `{{ placeholder }}`. The two forms are deliberately not interchangeable; see
+    // template.js.
+    gitflow,
   }
 }
