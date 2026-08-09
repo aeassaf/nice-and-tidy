@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { parseArgs } from 'node:util'
 
 import { bootstrap } from '../src/commands/bootstrap.js'
+import { clean } from '../src/commands/clean.js'
 import { EXIT_USAGE, init } from '../src/commands/init.js'
 
 const OPTIONS = {
@@ -27,13 +28,17 @@ Usage
   nice-and-tidy diff [options]        show what init would change, write nothing
   nice-and-tidy bootstrap [options]   one-time GitHub-side setup: PR template, its
                                        description gate, labels, milestones
+  nice-and-tidy clean [options]       find deprecated per-tool convention files
+                                       (e.g. .cursorrules) that predate this repo's
+                                       AGENTS.md and now conflict with it
 
 Options
   -g, --global        install for the current user instead of the current repo
       --local         install into the current repo (the default)
-      --dry-run       same as \`diff\` for init; for bootstrap, report without creating anything
+      --dry-run       same as \`diff\` for init; for bootstrap/clean, report without creating anything
       --keep-existing apply everything except files that differ, and leave those alone
-      --force         overwrite files that differ, without asking
+      --force         overwrite files that differ, without asking; for clean, replace every
+                       flagged file with a pointer to AGENTS.md, without asking
       --gitflow       branch off develop            (only when creating the config)
       --no-gitflow    branch off main, trunk-based  (only when creating the config)
   -h, --help          show this
@@ -106,6 +111,8 @@ async function main(argv) {
       return init({ ...shared, dryRun: true, force: false, keepExisting: false })
     case 'bootstrap':
       return bootstrap({ ...shared, dryRun: values['dry-run'] })
+    case 'clean':
+      return clean({ force: values.force, dryRun: values['dry-run'] })
     default:
       process.stderr.write(`Unknown command "${command}".\n\nRun \`nice-and-tidy --help\`.\n`)
       return EXIT_USAGE

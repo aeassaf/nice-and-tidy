@@ -104,7 +104,7 @@ service to authenticate against, no daemon to keep running.
 
 ## Status
 
-`init`, `diff` and `bootstrap` all work. 124 tests, mostly negative — an engine whose
+`init`, `diff`, `bootstrap` and `clean` all work. 137 tests, mostly negative — an engine whose
 job is "do not destroy the user's work" is only trustworthy if something proves it
 refuses to.
 
@@ -183,14 +183,15 @@ A skipped conflict stays a conflict. Nothing silently adopts a file you edited.
 nice-and-tidy init          # write the instruction files and the config
 nice-and-tidy diff          # show what init would change, write nothing
 nice-and-tidy bootstrap     # GitHub-side setup: PR template, gate, CI, labels, milestones
+nice-and-tidy clean         # find deprecated per-tool convention files that predate AGENTS.md
 ```
 
 | Flag | |
 |---|---|
 | `-g, --global` | Install for the current user instead of the current repo. |
-| `--dry-run` | Same as `diff`. |
+| `--dry-run` | Same as `diff`; for `clean`, report without writing anything. |
 | `--keep-existing` | Apply everything except conflicts. |
-| `--force` | Overwrite conflicts without asking. |
+| `--force` | Overwrite conflicts without asking; for `clean`, replace every flagged file with a pointer to `AGENTS.md`. |
 | `--gitflow` / `--no-gitflow` | Branch model. Only applies when creating the config. |
 
 Exit codes: `0` fine, `1` unresolved conflicts, `2` bad usage or bad config, `3`
@@ -214,6 +215,37 @@ run** — that's a repo-wide change a human should make deliberately.
 No Project board is created. `gh project create` only produces a blank project, and
 the GraphQL mutation that could clone a template needs a source ID GitHub doesn't
 expose to a token. `docs/WORKFLOW.md` documents the three manual steps instead.
+
+### `clean`
+
+A repo can carry older, per-tool convention files from before it ran
+`nice-and-tidy init` — `.cursorrules` from pre-2024 Cursor use is the common case —
+that now duplicate or contradict what `AGENTS.md` says. `clean` checks a small, fixed
+registry of formats verified as **deprecated by the tool that reads them**, not a
+glob of anything that looks agent-related:
+
+| Path | Deprecated in favor of |
+|---|---|
+| `.cursorrules` | `.cursor/rules/*.mdc` — Cursor's Agent mode, the default since 2026, silently ignores a root `.cursorrules` file entirely. |
+| `.windsurfrules` | Windsurf's native root `AGENTS.md` support. |
+
+A hit is skipped, silently, if its content already mentions `AGENTS.md` — nothing to
+do. Otherwise `clean` shows the file like a conflict (same diff `init` shows for a
+hand-edited file) and asks before writing anything; `--dry-run` only reports, and
+with no terminal to ask on and no `--force`, it reports and writes nothing, same as
+`init`. **It never deletes.** The only mutation is replacing a file's contents with a
+generic pointer to `AGENTS.md` — recoverable through git, and the file still exists
+in case something checks for its presence.
+
+The registry is intentionally short. `.clinerules` isn't in it: Cline does not read
+`AGENTS.md` natively as of this writing, so `.clinerules` is a *live* convention
+file, not a deprecated one — flagging it would offer to gut a config real Cline
+setups still depend on. Every entry is a claim about what a tool reads *today*,
+worth re-checking against that tool's own docs before it's trusted, the same as
+`targets` in [Config](#config) below.
+
+`init` prints a one-line note pointing at `clean` when it finds something to flag; it
+never runs `clean` for you.
 
 ### `--global`
 
@@ -281,7 +313,7 @@ download. Node 20.19+.
 npm test
 ```
 
-124 tests, mostly negative. An engine whose job is "do not destroy the user's work" is
+137 tests, mostly negative. An engine whose job is "do not destroy the user's work" is
 only trustworthy if something proves it refuses.
 
 ## Licence
