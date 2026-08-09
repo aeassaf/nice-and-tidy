@@ -5,7 +5,9 @@
   "license": "MIT",
   "author": "Antoine Assaf",
   "type": "module",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "nice-and-tidy": "bin/cli.js"
   },
