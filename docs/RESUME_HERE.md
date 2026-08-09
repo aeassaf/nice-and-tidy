@@ -11,8 +11,12 @@ Phase 1 is complete and on a branch, not yet merged.
 
 - Issue: [#1 — Phase 1 — CLI skeleton + config schema](https://github.com/aeassaf/nice-and-tidy/issues/1)
 - Branch: `feature/1-cli-skeleton-config-schema`
-- PR: opened against `main`
+- PR: [#2](https://github.com/aeassaf/nice-and-tidy/pull/2), open against `main`,
+  linked so that merging closes #1
 - Tests: 101, all passing (`npm test`)
+
+Verified on a clean clone of the branch: `diff` reports every file unchanged, which is
+the proof that committing `.nice-and-tidy/manifest.json` does what it is there for.
 
 ## What Phase 1 delivered
 
