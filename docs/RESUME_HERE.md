@@ -194,13 +194,26 @@ revisiting once a real board exists to test against.
 ## Known gaps, recorded rather than skipped
 
 - **`plan.js` cannot remove a file** when a target or config value that used to
-  produce it goes away. Handled by hand for the `windsurf` shim removal in Phase 2;
-  would need real code if this becomes routine.
+  produce it goes away. Two known instances now, not one: the `windsurf` shim
+  (Phase 2, handled by hand) and, since Phase 6, a stale scaffold left behind
+  whenever `protocol.memoryFile` changes to a new path — the old file at the old
+  path is never cleaned up, it just stops being written to. Would need real code if
+  either becomes routine rather than a one-off.
 - **The interactive conflict prompt is unit-tested, not end-to-end tested** — carried
   over from the Phase 1 session, still true, still low-risk (the e2e suite covers the
   no-TTY refusal path; `test/ui.test.mjs` covers answer parsing against fake streams).
 - **No Project board exists for this repo** — see Phase 5. Not a bug, a documented
   API limitation.
+- **Two memory-handoff-only commits have gone straight to `main`** this project's
+  history (`f1b35e1` in the Phase 1 session, `98794c3` ending this one), both
+  reasoned as "commentary, not project data, so the no-direct-push rule in
+  `AGENTS.md` §2 doesn't bite." That reasoning isn't written down anywhere in
+  `AGENTS.md` itself — §2 states "never push directly to `main`" with no exception
+  for `protocol.memoryFile`, and §7's GitHub-visibility rule is about *where* memory
+  goes, not *how* the commit lands. **This is a real ambiguity in the shipped rules,
+  not a resolved one** — either `AGENTS.md` §2 should say memory-only commits are
+  exempt, or they should get a `docs/` branch and PR like everything else. Antoine's
+  call; this file update itself went through a branch/PR to be safe until it's made.
 
 ## Next: Phases 7 and 8 — not started, out of this session's reach
 
