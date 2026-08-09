@@ -1,0 +1,34 @@
+# Session memory
+
+State of the build in aeassaf/nice-and-tidy, written for a session starting cold — no chat
+history, no GitHub. Read this first. See `docs/SESSION_PROTOCOL.md` for why this file
+exists and the rules for keeping it current — the short version: written by whichever
+agent finishes a session here, and nowhere else.
+
+**This file was just created and no session has written to it yet.** The first
+session to reach a real stopping point replaces everything below with what actually
+happened — this starting shape is a suggestion, not a format to preserve.
+
+## Where things stand
+
+Nothing shipped yet.
+
+## Decisions made
+
+None yet.
+
+## Open questions
+
+None recorded yet.
+
+## Known gaps
+
+None recorded yet.
+
+## Next
+
+Whatever the first issue turns out to be.
+
+## Running it
+
+<!-- How to build, test, or run this project — fill in once there's something to say. -->
