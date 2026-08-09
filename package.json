@@ -1,0 +1,44 @@
+{
+  "name": "nice-and-tidy",
+  "version": "0.1.0",
+  "description": "Install an issue-first Git workflow and an AI session protocol into any repo, for any coding agent.",
+  "license": "MIT",
+  "author": "Antoine Assaf",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "nice-and-tidy": "bin/cli.js"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "files": [
+    "bin",
+    "src",
+    "templates",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "nice-and-tidy": "node bin/cli.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aeassaf/nice-and-tidy.git"
+  },
+  "bugs": {
+    "url": "https://github.com/aeassaf/nice-and-tidy/issues"
+  },
+  "homepage": "https://github.com/aeassaf/nice-and-tidy#readme",
+  "keywords": [
+    "agents-md",
+    "ai-agent",
+    "coding-agent",
+    "git-workflow",
+    "gitflow",
+    "conventional-commits",
+    "pull-request-template",
+    "scaffolding"
+  ]
+}

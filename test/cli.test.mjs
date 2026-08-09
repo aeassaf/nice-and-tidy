@@ -1,0 +1,267 @@
+/**
+ * End to end, through the real binary in a real directory.
+ *
+ * The unit tests prove the engine's states. These prove the thing a person actually
+ * runs — including that a second run is silent, and that a hand-edited file survives
+ * a run with no terminal to ask on.
+ */
+import assert from 'node:assert/strict'
+import { execFile } from 'node:child_process'
+import { appendFile, readFile, stat, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { test } from 'node:test'
+import { promisify } from 'node:util'
+
+import { CLI, tempDir } from './helpers.mjs'
+
+const exec = promisify(execFile)
+
+async function cli(args, { cwd, env = {} } = {}) {
+  try {
+    const { stdout, stderr } = await exec(process.execPath, [CLI, ...args], {
+      cwd,
+      env: { ...process.env, NO_COLOR: '1', ...env },
+    })
+    return { code: 0, stdout, stderr }
+  } catch (error) {
+    return { code: error.code, stdout: error.stdout ?? '', stderr: error.stderr ?? '' }
+  }
+}
+
+const INSTALLED = [
+  'nice-and-tidy.config.json',
+  'AGENTS.md',
+  'CLAUDE.md',
+  '.claude/skills/nice-and-tidy/SKILL.md',
+  '.github/copilot-instructions.md',
+  '.cursor/rules/nice-and-tidy.mdc',
+  '.windsurfrules',
+  '.nice-and-tidy/manifest.json',
+]
+
+const exists = async (path) => stat(path).then(() => true, () => false)
+
+// --- the happy path, and the gate: running twice ------------------------------
+
+test('a first init writes the whole set', async (t) => {
+  const cwd = await tempDir(t)
+  const { code, stdout } = await cli(['init'], { cwd })
+
+  assert.equal(code, 0)
+  for (const file of INSTALLED) {
+    assert.ok(await exists(join(cwd, file)), `${file} was not written`)
+  }
+  assert.match(stdout, /7 created/)
+})
+
+test('a second init is a silent no-op and touches nothing', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+
+  const before = await Promise.all(INSTALLED.map((f) => stat(join(cwd, f)).then((s) => s.mtimeMs)))
+  const { code, stdout } = await cli(['init'], { cwd })
+  const after = await Promise.all(INSTALLED.map((f) => stat(join(cwd, f)).then((s) => s.mtimeMs)))
+
+  assert.equal(code, 0)
+  assert.match(stdout, /Already up to date/)
+  assert.deepEqual(after, before, 'a no-op run rewrote a file')
+})
+
+test('a config change regenerates the files it affects', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+
+  const config = JSON.parse(await readFile(join(cwd, 'nice-and-tidy.config.json'), 'utf8'))
+  config.gitflow = false
+  await writeFile(join(cwd, 'nice-and-tidy.config.json'), `${JSON.stringify(config, null, 2)}\n`)
+
+  const { code, stdout } = await cli(['init'], { cwd })
+  assert.equal(code, 0)
+  assert.match(stdout, /update/)
+  assert.match(await readFile(join(cwd, 'AGENTS.md'), 'utf8'), /Cut everyday branches from \*\*`main`\*\*/)
+})
+
+test('the config is never rewritten once it exists', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+
+  const path = join(cwd, 'nice-and-tidy.config.json')
+  await writeFile(path, `${JSON.stringify({ repo: 'me/mine', scopes: ['cli'] }, null, 2)}\n`)
+  const mine = await readFile(path, 'utf8')
+
+  await cli(['init'], { cwd })
+
+  assert.equal(await readFile(path, 'utf8'), mine)
+})
+
+// --- the refusals -------------------------------------------------------------
+
+test('a hand-edited file stops the run when there is no terminal to ask on', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+  await appendFile(join(cwd, 'AGENTS.md'), '\n## Mine\n\nNever deploy on a Friday.\n')
+  const mine = await readFile(join(cwd, 'AGENTS.md'), 'utf8')
+
+  const { code, stdout, stderr } = await cli(['init'], { cwd })
+
+  assert.equal(code, 1)
+  assert.equal(await readFile(join(cwd, 'AGENTS.md'), 'utf8'), mine, 'the edit was destroyed')
+  assert.match(stdout, /Never deploy on a Friday/, 'the diff has to show what would be lost')
+  assert.match(stderr, /--keep-existing/)
+  assert.match(stderr, /--force/)
+})
+
+test('a pre-existing file this tool never wrote is a conflict, not a clobber', async (t) => {
+  const cwd = await tempDir(t)
+  await writeFile(join(cwd, 'AGENTS.md'), '# My own instructions\n')
+
+  const { code } = await cli(['init'], { cwd })
+
+  assert.equal(code, 1)
+  assert.equal(await readFile(join(cwd, 'AGENTS.md'), 'utf8'), '# My own instructions\n')
+})
+
+test('--keep-existing applies everything else and succeeds', async (t) => {
+  const cwd = await tempDir(t)
+  await writeFile(join(cwd, 'AGENTS.md'), '# My own instructions\n')
+
+  const { code } = await cli(['init', '--keep-existing'], { cwd })
+
+  assert.equal(code, 0)
+  assert.equal(await readFile(join(cwd, 'AGENTS.md'), 'utf8'), '# My own instructions\n')
+  assert.ok(await exists(join(cwd, 'CLAUDE.md')), 'the non-conflicting files should still land')
+})
+
+test('a skipped conflict is still a conflict on the next run', async (t) => {
+  const cwd = await tempDir(t)
+  await writeFile(join(cwd, 'AGENTS.md'), '# My own instructions\n')
+  await cli(['init', '--keep-existing'], { cwd })
+
+  const { code } = await cli(['init'], { cwd })
+
+  assert.equal(code, 1, 'skipping once must not silently adopt the file')
+})
+
+test('--force overwrites, and only then', async (t) => {
+  const cwd = await tempDir(t)
+  await writeFile(join(cwd, 'AGENTS.md'), '# My own instructions\n')
+
+  const { code } = await cli(['init', '--force'], { cwd })
+
+  assert.equal(code, 0)
+  assert.doesNotMatch(await readFile(join(cwd, 'AGENTS.md'), 'utf8'), /My own instructions/)
+})
+
+test('diff writes nothing at all, not even on a clean directory', async (t) => {
+  const cwd = await tempDir(t)
+  const { code, stdout } = await cli(['diff'], { cwd })
+
+  assert.equal(code, 0)
+  assert.match(stdout, /create/)
+  for (const file of INSTALLED) {
+    assert.equal(await exists(join(cwd, file)), false, `${file} was written by a dry run`)
+  }
+})
+
+test('diff reports a conflict without failing — it is a report', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+  await appendFile(join(cwd, 'AGENTS.md'), '\nmine\n')
+
+  const { code, stdout } = await cli(['diff'], { cwd })
+
+  assert.equal(code, 0)
+  assert.match(stdout, /differs from what an install would write/)
+})
+
+// --- targets ------------------------------------------------------------------
+
+test('targets decides what gets installed', async (t) => {
+  const cwd = await tempDir(t)
+  await writeFile(
+    join(cwd, 'nice-and-tidy.config.json'),
+    `${JSON.stringify({ targets: ['agents-md'] }, null, 2)}\n`,
+  )
+
+  const { code } = await cli(['init'], { cwd })
+
+  assert.equal(code, 0)
+  assert.ok(await exists(join(cwd, 'AGENTS.md')))
+  assert.equal(await exists(join(cwd, 'CLAUDE.md')), false)
+  assert.equal(await exists(join(cwd, '.windsurfrules')), false)
+})
+
+// --- global -------------------------------------------------------------------
+
+test('a global install writes under the home directory and says what it did not do', async (t) => {
+  const cwd = await tempDir(t)
+  const home = await tempDir(t)
+
+  const { code, stdout } = await cli(['init', '--global'], { cwd, env: { HOME: home } })
+
+  assert.equal(code, 0)
+  assert.ok(await exists(join(home, '.config/nice-and-tidy/AGENTS.md')))
+  assert.ok(await exists(join(home, '.claude/skills/nice-and-tidy/SKILL.md')))
+  assert.ok(await exists(join(home, '.config/nice-and-tidy/nice-and-tidy.config.json')))
+  assert.match(stdout, /Nothing loads a machine-wide AGENTS\.md on its own/)
+
+  assert.equal(await exists(join(cwd, 'AGENTS.md')), false, 'a global install must not write into the cwd')
+  assert.equal(await exists(join(home, 'nice-and-tidy.config.json')), false, 'no config dropped at the top of home')
+})
+
+test('a global install names the targets it has nothing for, rather than pretending', async (t) => {
+  const home = await tempDir(t)
+  const { stdout } = await cli(['init', '--global'], { cwd: await tempDir(t), env: { HOME: home } })
+  assert.match(stdout, /copilot, cursor, windsurf/)
+})
+
+// --- usage errors -------------------------------------------------------------
+
+test('contradictory flags are refused rather than silently ranked', async (t) => {
+  const cwd = await tempDir(t)
+  for (const args of [
+    ['init', '--force', '--keep-existing'],
+    ['init', '--global', '--local'],
+    ['init', '--gitflow', '--no-gitflow'],
+  ]) {
+    const { code } = await cli(args, { cwd })
+    assert.equal(code, 2, `expected ${args.join(' ')} to be refused`)
+  }
+})
+
+test('an unknown command and an unknown flag both exit 2', async (t) => {
+  const cwd = await tempDir(t)
+  assert.equal((await cli(['frobnicate'], { cwd })).code, 2)
+  assert.equal((await cli(['init', '--yolo'], { cwd })).code, 2)
+})
+
+test('an invalid config refuses to run and says why', async (t) => {
+  const cwd = await tempDir(t)
+  await writeFile(join(cwd, 'nice-and-tidy.config.json'), JSON.stringify({ targets: ['emacs'] }))
+
+  const { code, stderr } = await cli(['init'], { cwd })
+
+  assert.equal(code, 2)
+  assert.match(stderr, /emacs/)
+  assert.equal(await exists(join(cwd, 'AGENTS.md')), false)
+})
+
+test('bootstrap refuses loudly instead of pretending to work', async (t) => {
+  const { code, stderr } = await cli(['bootstrap'], { cwd: await tempDir(t) })
+  assert.equal(code, 3)
+  assert.match(stderr, /not implemented yet/)
+  assert.match(stderr, /Nothing was created, changed or contacted/)
+})
+
+// --- the non-negotiable, at the surface a person sees -------------------------
+
+test('help and bootstrap name no agent or product', async (t) => {
+  const cwd = await tempDir(t)
+  // `init`'s file listing is exempt: it prints the paths it just wrote, and a loader
+  // dictates those. Everything the CLI says in its own voice is not exempt.
+  const banned = /\b(claude|copilot|cursor|windsurf|codex|gemini|aider|devin|chatgpt|openai|anthropic)\b/i
+  for (const args of [['--help'], ['bootstrap']]) {
+    const { stdout, stderr } = await cli(args, { cwd })
+    assert.equal(banned.test(stdout + stderr), false, `${args.join(' ')} named a product`)
+  }
+})

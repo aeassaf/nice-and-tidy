@@ -1,0 +1,109 @@
+#!/usr/bin/env node
+import { readFile } from 'node:fs/promises'
+import { parseArgs } from 'node:util'
+
+import { bootstrap } from '../src/commands/bootstrap.js'
+import { EXIT_USAGE, init } from '../src/commands/init.js'
+
+const OPTIONS = {
+  global: { type: 'boolean', short: 'g', default: false },
+  local: { type: 'boolean', default: false },
+  force: { type: 'boolean', default: false },
+  'keep-existing': { type: 'boolean', default: false },
+  'dry-run': { type: 'boolean', default: false },
+  // Two flags rather than one negatable boolean: `allowNegative` landed after the
+  // oldest Node this package supports, and a flag that silently does nothing on an
+  // older runtime is worse than a flag that does not exist.
+  gitflow: { type: 'boolean', default: false },
+  'no-gitflow': { type: 'boolean', default: false },
+  help: { type: 'boolean', short: 'h', default: false },
+  version: { type: 'boolean', short: 'v', default: false },
+}
+
+const USAGE = `nice-and-tidy — an issue-first Git workflow and session protocol, installed into any repo.
+
+Usage
+  nice-and-tidy init [options]        write the instruction files and the config
+  nice-and-tidy diff [options]        show what init would change, write nothing
+  nice-and-tidy bootstrap             one-time GitHub-side setup (not implemented yet)
+
+Options
+  -g, --global        install for the current user instead of the current repo
+      --local         install into the current repo (the default)
+      --dry-run       same as \`diff\`
+      --keep-existing apply everything except files that differ, and leave those alone
+      --force         overwrite files that differ, without asking
+      --gitflow       branch off develop            (only when creating the config)
+      --no-gitflow    branch off main, trunk-based  (only when creating the config)
+  -h, --help          show this
+  -v, --version       print the version
+
+Re-running is safe. A file this tool wrote and nobody touched gets updated; a file
+somebody edited gets shown as a diff and left alone unless you say otherwise.
+`
+
+async function version() {
+  const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
+  return pkg.version
+}
+
+async function main(argv) {
+  let parsed
+  try {
+    parsed = parseArgs({ args: argv, options: OPTIONS, allowPositionals: true, strict: true })
+  } catch (error) {
+    process.stderr.write(`${error.message}\n\nRun \`nice-and-tidy --help\`.\n`)
+    return EXIT_USAGE
+  }
+
+  const { values, positionals } = parsed
+  const command = positionals[0] ?? (values.help || values.version ? null : 'help')
+
+  if (values.version) {
+    process.stdout.write(`${await version()}\n`)
+    return 0
+  }
+  if (values.help || command === 'help' || command === null) {
+    process.stdout.write(USAGE)
+    return 0
+  }
+
+  if (positionals.length > 1) {
+    process.stderr.write(`Unexpected argument "${positionals[1]}".\n\nRun \`nice-and-tidy --help\`.\n`)
+    return EXIT_USAGE
+  }
+
+  if (values.global && values.local) {
+    process.stderr.write('Pass --global or --local, not both.\n')
+    return EXIT_USAGE
+  }
+  if (values.gitflow && values['no-gitflow']) {
+    process.stderr.write('Pass --gitflow or --no-gitflow, not both.\n')
+    return EXIT_USAGE
+  }
+  if (values.force && values['keep-existing']) {
+    process.stderr.write('Pass --force or --keep-existing, not both — they are opposite answers.\n')
+    return EXIT_USAGE
+  }
+
+  const shared = {
+    global: values.global,
+    force: values.force,
+    keepExisting: values['keep-existing'],
+    gitflow: values.gitflow ? true : values['no-gitflow'] ? false : undefined,
+  }
+
+  switch (command) {
+    case 'init':
+      return init({ ...shared, dryRun: values['dry-run'] })
+    case 'diff':
+      return init({ ...shared, dryRun: true, force: false, keepExisting: false })
+    case 'bootstrap':
+      return bootstrap({})
+    default:
+      process.stderr.write(`Unknown command "${command}".\n\nRun \`nice-and-tidy --help\`.\n`)
+      return EXIT_USAGE
+  }
+}
+
+process.exitCode = await main(process.argv.slice(2))

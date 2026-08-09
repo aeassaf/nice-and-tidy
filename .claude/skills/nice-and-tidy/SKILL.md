@@ -1,0 +1,80 @@
+---
+name: nice-and-tidy
+description: Issue-first Git workflow and session protocol — create the issue before the branch, name branches and commits to convention, fill every issue/PR field, keep the board honest, reply concisely with a status block, and hand off to the next session through a committed markdown file. Use when starting work on a feature, bug or change; when opening a branch, commit or pull request; when updating issue or board state; or when ending a working session.
+---
+
+# nice-and-tidy
+
+## Precedence
+
+If the repository has an `AGENTS.md` at its root, **that file wins.** Read it first
+and follow it. This skill adds execution detail — how to actually carry the rules
+out — and fills the gaps when a repository has no `AGENTS.md` of its own.
+
+## The short form
+
+1. An issue exists before code does. One issue per session.
+2. Branch: `<type>/<issue-number>-<kebab-case-slug>`, cut from `main`,
+   merged back into `main`. Never push to `main`.
+3. Commit: `<type>(<scope>): <subject>` — imperative, lowercase, no trailing period.
+   Types: `feat fix docs style refactor perf test build ci chore dependencies revert`.
+   **Not enforced by anything.** Convention, and say so rather than implying a gate.
+4. Every issue and PR has its fields filled: labels, milestone, assignee, board
+   Status/Priority/Size, and the issue link on the PR.
+5. Board Status tracks reality: branch but no PR → *In progress*; PR open → *In
+   review*; PR merged → *Done*. Merging does not move the board field for you.
+6. Reply concisely and end with a status block. End a session with a handoff.
+
+## Executing it
+
+**If you can run shell commands**, do the GitHub work rather than describing it:
+
+```bash
+gh issue create --title "…" --body-file <file> --label <label> --assignee aeassaf
+git checkout -b <type>/<issue>-<slug> main
+gh pr create --base main --body-file <file> --assignee aeassaf
+```
+
+Pass bodies through `--body-file`, not inline strings — an inline body with a
+backtick or a `$` in it becomes a shell expansion.
+
+**Board fields must have their IDs re-queried every time.** A field ID or option ID
+copied from an earlier session, or from a document, writes a wrong value to a wrong
+field and does not error while doing it:
+
+```bash
+gh project item-list <number> --owner <owner> --format json
+gh project field-list <number> --owner <owner> --format json
+gh project item-edit --project-id <id> --id <item-id> \
+  --field-id <field-id> --single-select-option-id <option-id>
+```
+
+**If you cannot run shell commands**, print the exact commands and the field values
+you would have set, and say plainly that they still need running.
+
+## Ending a session
+
+Push everything, update the issue and the PR, leave the working tree clean, then
+write the handoff to **`docs/RESUME_HERE.md`**:
+
+- What was finished this session.
+- What is planned next.
+- Enough state that a session starting cold — no chat history, no context — can
+  continue from the file alone.
+
+**The handoff goes in that file and nowhere else.** Not an issue comment, not a PR
+comment, not a board note. Issue and PR *fields* are real project data and keep being
+updated on GitHub; an agent's account of its own sessions is not, and GitHub stays
+exactly as readable to a human as it would be if no agent had ever been involved.
+
+There is no option to write session memory to GitHub. This one is not conditional on
+what a given session happens to be capable of.
+
+## Stopping rules
+
+- Never fabricate an issue number, a field ID, or an option ID.
+- Never flip the default branch, delete a label, or close a tracking issue unless it
+  was asked for in the conversation. Prepare the command, print it, let a human run
+  it.
+- Never overwrite a hand-edited file without showing the diff and asking first.
+- Never claim a rule is enforced when nothing enforces it.
