@@ -1,17 +1,24 @@
 /**
- * End to end, through the real binary in a real directory.
+ * End to end, in a real directory — through the real binary wherever that is possible.
  *
  * The unit tests prove the engine's states. These prove the thing a person actually
  * runs — including that a second run is silent, and that a hand-edited file survives
  * a run with no terminal to ask on.
+ *
+ * The one exception is the interactive prompt: `interactive` comes from stdin being a
+ * TTY, and a subprocess spawned by the test runner never has one. That test calls
+ * `init` in process with a pair of streams instead, which is the same path — `init`
+ * does not know who is holding the other end.
  */
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { appendFile, readFile, stat, writeFile } from 'node:fs/promises'
+import { appendFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { PassThrough } from 'node:stream'
 import { test } from 'node:test'
 import { promisify } from 'node:util'
 
+import { init } from '../src/commands/init.js'
 import { CLI, tempDir } from './helpers.mjs'
 
 const exec = promisify(execFile)
@@ -203,6 +210,147 @@ test('--force overwrites, and only then', async (t) => {
   assert.doesNotMatch(await readFile(join(cwd, 'AGENTS.md'), 'utf8'), /My own instructions/)
 })
 
+// --- append -------------------------------------------------------------------
+
+const MINE = '# My own instructions\n\nNever deploy on a Friday.\n'
+
+test('--append keeps the file and adds the generated block below it', async (t) => {
+  const cwd = await tempDir(t)
+  await writeFile(join(cwd, 'CLAUDE.md'), MINE)
+
+  const { code, stdout } = await cli(['init', '--append'], { cwd })
+  const written = await readFile(join(cwd, 'CLAUDE.md'), 'utf8')
+
+  assert.equal(code, 0)
+  assert.ok(written.startsWith(MINE), "the user's own instructions were moved or lost")
+  assert.match(written, /@AGENTS\.md/, 'the generated content never landed')
+  assert.match(stdout, /1 appended to/)
+})
+
+test('an appended file is silent on every run after', async (t) => {
+  const cwd = await tempDir(t)
+  await writeFile(join(cwd, 'CLAUDE.md'), MINE)
+  await cli(['init', '--append'], { cwd })
+
+  const after = await readFile(join(cwd, 'CLAUDE.md'), 'utf8')
+  const { code, stdout } = await cli(['init'], { cwd })
+
+  assert.equal(code, 0, 'an appended file must not conflict with itself forever')
+  assert.match(stdout, /Already up to date/)
+  assert.equal(await readFile(join(cwd, 'CLAUDE.md'), 'utf8'), after)
+})
+
+test('editing your own half of an appended file is not a conflict', async (t) => {
+  const cwd = await tempDir(t)
+  await writeFile(join(cwd, 'CLAUDE.md'), MINE)
+  await cli(['init', '--append'], { cwd })
+  await writeFile(join(cwd, 'CLAUDE.md'), (await readFile(join(cwd, 'CLAUDE.md'), 'utf8')).replace(MINE, `${MINE}\n- And one more rule.\n`))
+
+  const { code, stdout } = await cli(['init'], { cwd })
+
+  assert.equal(code, 0)
+  assert.match(stdout, /Already up to date/)
+})
+
+test('editing inside the block asks again, and answering keeps your half', async (t) => {
+  const cwd = await tempDir(t)
+  await writeFile(join(cwd, 'CLAUDE.md'), MINE)
+  await cli(['init', '--append'], { cwd })
+  await writeFile(
+    join(cwd, 'CLAUDE.md'),
+    (await readFile(join(cwd, 'CLAUDE.md'), 'utf8')).replace('@AGENTS.md', '@AGENTS.md\n\nedited by hand'),
+  )
+
+  const conflicted = await cli(['init'], { cwd })
+  assert.equal(conflicted.code, 1, 'a hand-edited block has to stop and ask')
+
+  const { code } = await cli(['init', '--force'], { cwd })
+  assert.equal(code, 0)
+  assert.ok((await readFile(join(cwd, 'CLAUDE.md'), 'utf8')).startsWith(MINE), 'answering took the whole file')
+})
+
+test('a file whose content only works at the top of a file is left alone, and said so', async (t) => {
+  const cwd = await tempDir(t)
+  const rule = join(cwd, '.cursor/rules/nice-and-tidy.mdc')
+  await mkdir(join(cwd, '.cursor/rules'), { recursive: true })
+  await writeFile(rule, '---\ndescription: mine\n---\n\nMy own rule.\n')
+
+  const { code, stdout } = await cli(['init', '--append'], { cwd })
+
+  assert.equal(code, 0)
+  assert.equal(await readFile(rule, 'utf8'), '---\ndescription: mine\n---\n\nMy own rule.\n')
+  assert.match(stdout, /cannot take an appended block/)
+})
+
+test('--append never leaves two copies of our own content in one file', async (t) => {
+  // Our file, hand-edited afterwards. Appending here would stack a complete second
+  // copy of the generated file underneath the user's edited one.
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+  await appendFile(join(cwd, 'AGENTS.md'), '\n## Mine\n\nNever deploy on a Friday.\n')
+  const mine = await readFile(join(cwd, 'AGENTS.md'), 'utf8')
+
+  const { code, stdout } = await cli(['init', '--append'], { cwd })
+
+  assert.equal(code, 0)
+  assert.equal(await readFile(join(cwd, 'AGENTS.md'), 'utf8'), mine)
+  assert.match(stdout, /would leave two copies/)
+  assert.match(stdout, /1 left alone/)
+})
+
+test('append is offered as a way out when there is no terminal to ask on', async (t) => {
+  const cwd = await tempDir(t)
+  await writeFile(join(cwd, 'CLAUDE.md'), MINE)
+
+  const { code, stderr } = await cli(['init'], { cwd })
+
+  assert.equal(code, 1)
+  assert.match(stderr, /--append/)
+})
+
+test('answering + at the prompt appends, and only the appendable file is offered it', async (t) => {
+  // In process rather than through the binary: `interactive` comes from stdin being a
+  // TTY, and a subprocess spawned by the test runner never has one. Same path a person
+  // takes — `init` does not know who is holding the other end of the stream.
+  const cwd = await tempDir(t)
+  await writeFile(join(cwd, 'CLAUDE.md'), MINE)
+  await mkdir(join(cwd, '.cursor/rules'), { recursive: true })
+  await writeFile(join(cwd, '.cursor/rules/nice-and-tidy.mdc'), '---\ndescription: mine\n---\n')
+
+  const input = new PassThrough()
+  const output = new PassThrough()
+  const seen = []
+  output.on('data', (chunk) => {
+    const text = chunk.toString()
+    if (!/overwrite it\?/.test(text)) return
+    seen.push(text)
+    // `+` for the shim, then Enter for the rule file, which was never offered append.
+    input.write(seen.length === 1 ? '+\n' : '\n')
+  })
+
+  const code = await init({ cwd, interactive: true, input, output, out: () => {}, err: () => {} })
+  const written = await readFile(join(cwd, 'CLAUDE.md'), 'utf8')
+
+  assert.equal(code, 0)
+  assert.equal(seen.length, 2)
+  assert.match(seen[0], /\+ = append/, 'the option has to be visible to be usable')
+  assert.doesNotMatch(seen[1], /append/, 'a file that cannot take a block must not be offered one')
+  assert.ok(written.startsWith(MINE))
+  assert.match(written, /@AGENTS\.md/)
+  assert.equal(await readFile(join(cwd, '.cursor/rules/nice-and-tidy.mdc'), 'utf8'), '---\ndescription: mine\n---\n')
+})
+
+test('diff --append previews the append, not an overwrite', async (t) => {
+  const cwd = await tempDir(t)
+  await writeFile(join(cwd, 'CLAUDE.md'), MINE)
+
+  const { code, stdout } = await cli(['diff', '--append'], { cwd })
+
+  assert.equal(code, 0)
+  assert.doesNotMatch(stdout, /-Never deploy on a Friday/, 'a dry run must not show work being destroyed that would not be')
+  assert.match(stdout, /\+<!-- nice-and-tidy:begin/)
+})
+
 test('diff writes nothing at all, not even on a clean directory', async (t) => {
   const cwd = await tempDir(t)
   const { code, stdout } = await cli(['diff'], { cwd })
@@ -273,6 +421,8 @@ test('contradictory flags are refused rather than silently ranked', async (t) =>
   const cwd = await tempDir(t)
   for (const args of [
     ['init', '--force', '--keep-existing'],
+    ['init', '--force', '--append'],
+    ['init', '--keep-existing', '--append'],
     ['init', '--global', '--local'],
     ['init', '--gitflow', '--no-gitflow'],
   ]) {

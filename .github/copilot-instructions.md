@@ -2,7 +2,7 @@
 
 **Read `AGENTS.md` at the root of this repository and follow it.** It is the single
 source of truth for how work is tracked, branched, committed, reviewed, and handed
-off here. This file is a pointer to it, not a second copy.
+off here. What follows is a pointer to it, not a second copy.
 
 The short version, so nothing is lost if only this file is loaded:
 

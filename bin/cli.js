@@ -12,6 +12,7 @@ const OPTIONS = {
   local: { type: 'boolean', default: false },
   force: { type: 'boolean', default: false },
   'keep-existing': { type: 'boolean', default: false },
+  append: { type: 'boolean', default: false },
   'dry-run': { type: 'boolean', default: false },
   // Two flags rather than one negatable boolean: `allowNegative` landed after the
   // oldest Node this package supports, and a flag that silently does nothing on an
@@ -42,6 +43,9 @@ Options
       --keep-existing apply everything except files that differ, and leave those alone
       --force         overwrite files that differ, without asking; for clean, replace every
                        flagged file with a pointer to AGENTS.md, without asking
+      --append        keep what those files already say and add this tool's content to the
+                       end of each, fenced by markers only later runs rewrite; files whose
+                       content only works at the top of a file are left alone instead
       --gitflow       branch off develop            (only when creating the config)
       --no-gitflow    branch off main, trunk-based  (only when creating the config)
   -h, --help          show this
@@ -94,8 +98,18 @@ async function main(argv) {
     process.stderr.write('Pass --gitflow or --no-gitflow, not both.\n')
     return EXIT_USAGE
   }
+  // Three answers to the same question, and each pair is a different contradiction, so
+  // each pair says which one it is rather than sharing one vague message.
   if (values.force && values['keep-existing']) {
     process.stderr.write('Pass --force or --keep-existing, not both — they are opposite answers.\n')
+    return EXIT_USAGE
+  }
+  if (values.force && values.append) {
+    process.stderr.write('Pass --force or --append, not both — one replaces what is there, the other keeps it.\n')
+    return EXIT_USAGE
+  }
+  if (values['keep-existing'] && values.append) {
+    process.stderr.write('Pass --keep-existing or --append, not both — one writes nothing, the other writes a block.\n')
     return EXIT_USAGE
   }
 
@@ -103,6 +117,7 @@ async function main(argv) {
     global: values.global,
     force: values.force,
     keepExisting: values['keep-existing'],
+    append: values.append,
     gitflow: values.gitflow ? true : values['no-gitflow'] ? false : undefined,
   }
 
@@ -110,6 +125,10 @@ async function main(argv) {
     case 'init':
       return init({ ...shared, dryRun: values['dry-run'] })
     case 'diff':
+      // `force` and `keepExisting` are answers, and `diff` does not answer. `append`
+      // is dropped for the same reason but kept as far as the report: in a dry run it
+      // only selects which outcome gets diffed, and showing the one that was asked
+      // about is the whole job here.
       return init({ ...shared, dryRun: true, force: false, keepExisting: false })
     case 'upgrade':
       return upgrade({ ...shared, dryRun: values['dry-run'] })

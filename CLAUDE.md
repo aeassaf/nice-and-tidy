@@ -1,9 +1,10 @@
 @AGENTS.md
 
 <!--
-  The line above is an import, and it has to stay first: everything that governs how
-  work happens in this repo lives in AGENTS.md, and this file exists only because
-  some tools look for this filename instead.
+  The line above is an import: everything that governs how work happens in this repo
+  lives in AGENTS.md, and this file exists only because some tools look for this
+  filename instead. It has to stay on a line of its own — wherever in the file that
+  line ends up, including below content of your own that came first.
 
   Add repo-specific notes below if you need them. Do not restate AGENTS.md here — two
   copies of a rule is one copy of a rule and one copy of a rule that is out of date.

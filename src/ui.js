@@ -30,6 +30,8 @@ export const ACTION_LABEL = {
 export const CONFLICT_EXPLANATION = {
   untracked: 'already existed and was not written by this tool',
   edited: 'was written by this tool, then edited by hand',
+  'region-untracked': 'holds a generated block this install has no record of writing',
+  'region-edited': 'holds a generated block that was then edited by hand',
 }
 
 export function printDiff(item, write = (line) => process.stdout.write(line)) {
@@ -55,20 +57,34 @@ export function printDiff(item, write = (line) => process.stdout.write(line)) {
  *
  * Skip is that default, on a bare Enter and on a stream that ends mid-prompt: the
  * answer that cannot destroy somebody's work is the one allowed to happen by accident.
+ *
+ * Append is offered per question rather than always, because not every caller has
+ * anywhere to put it — a JSON config cannot be appended to, and a deprecated
+ * convention file has no block to manage. An option that silently does nothing is
+ * worse than one that isn't offered.
+ *
+ * `a` stays abort even though "append" starts with it. The key for append is `+`, and
+ * the full word is accepted too; someone who types `a` meaning append gets the answer
+ * that writes nothing, which is the safe half of that collision.
  */
 export function createPrompter({ input = process.stdin, output = process.stdout } = {}) {
   let rl = null
 
   return {
-    async ask() {
+    async ask({ allowAppend = false } = {}) {
       rl ??= createInterface({ input, output })
+      const options = [
+        'y = overwrite',
+        `${bold('N')} = keep mine`,
+        ...(allowAppend ? ['+ = append ours below yours'] : []),
+        'a = abort',
+      ]
       try {
-        const answer = await rl.question(
-          `  ${bold('overwrite')} it? [y = overwrite / ${bold('N')} = keep mine / a = abort] `,
-        )
+        const answer = await rl.question(`  ${bold('overwrite')} it? [${options.join(' / ')}] `)
         const choice = answer.trim().toLowerCase()
         if (choice === 'y' || choice === 'yes') return 'overwrite'
         if (choice === 'a' || choice === 'abort') return 'abort'
+        if (allowAppend && (choice === '+' || choice === 'append')) return 'append'
         return 'skip'
       } catch {
         return 'skip'
