@@ -1,6 +1,6 @@
 {
   "manifestVersion": 1,
-  "generatorVersion": "0.3.0",
+  "generatorVersion": "0.4.0",
   "files": {
     ".claude/skills/nice-and-tidy/SKILL.md": "5e58dcdb04a939dd0ab29dde83880f69f0a526ec6d8fffe0668cae3971b8a99a",
     ".cursor/rules/nice-and-tidy.mdc": "bcf7b7dea37d2254667ef4f5a688f282f386936cd642590d5d07a5097931444a",
