@@ -160,9 +160,18 @@ nothing to report — never print "None" as filler.**
   substantive reply — not only when it changes. Call it out explicitly if the work
   has outgrown the tier you started on.
 
-## 7. Ending a session
+## 7. Ending a session — and checkpointing before you have to
 
-At a real stopping point — not after every message — add:
+A session can end without warning — out of context, killed, disconnected — before it
+ever reaches a deliberate stopping point. Don't wait for one to write memory.
+
+**Checkpoint as you go.** After a meaningful sub-task finishes, before a long or risky
+step, or whenever state you'd hate to lose changes, overwrite `{{ memoryFile }}` with
+where things stand. A rough, partial checkpoint beats none — it doesn't need the full
+structure below, just enough for a cold-start session to not repeat your work or lose
+a decision.
+
+**At a real stopping point** — not after every message — write the fuller version:
 
 - **Done this session** — brief, complete bullets.
 - **Planned for next session** — brief, complete bullets.

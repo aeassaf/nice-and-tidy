@@ -63,6 +63,20 @@ carried the right parts of itself along.
 This table is a starting point, not a gate — nothing mechanically enforces it, the
 same way nothing enforces the rest of this file.
 
+## Checkpointing before the end
+
+A deliberate close-out assumes the session gets to choose when it ends. It often
+doesn't — a session can run out of context, get killed, or lose its connection
+mid-task, with no chance to ever reach "a real stopping point." If the only write to
+`{{ memoryFile }}` happens there, an interrupted session leaves nothing behind, and
+the next one starts cold with no idea what was mid-flight.
+
+So memory isn't only a close-out artifact. Overwrite `{{ memoryFile }}` at natural
+checkpoints during the session too — a sub-task finishing, before a long or risky
+step, any time the state worth resuming from changes — with wherever things actually
+stand. It doesn't need the Done/Planned/Memory-handoff structure below; a rough
+current-state note is the point, not a polished one.
+
 ## Ending a session
 
 At a real stopping point — not after every message:
