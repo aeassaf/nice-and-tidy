@@ -1,4 +1,5 @@
 import { CONFIG_FILENAME, ConfigError, defaultConfig, readConfig } from '../config.js'
+import { scanForeignConventions } from '../foreignConventions.js'
 import { detectRepoSlug, findRepoRoot } from '../git.js'
 import { readManifest } from '../manifest.js'
 import { buildPayload, filesFor, inertTargets } from '../payload.js'
@@ -103,6 +104,22 @@ export async function init(options) {
         `  ${dim(`~/${canonical}`)} is a reference copy, not a hook. Per-repo installs are what\n` +
         `  agents actually read — run this inside a repository for that.\n`,
     )
+  }
+
+  if (scope.kind === 'local') {
+    const foreign = await scanForeignConventions(scope.root)
+    const flagged = foreign.filter((hit) => hit.exists && !hit.aligned)
+    if (flagged.length > 0) {
+      out(
+        `\n  ${dim(
+          `${flagged.length} older ${flagged.length === 1 ? 'file' : 'files'} here (${flagged
+            .map((hit) => hit.path)
+            .join(', ')}) may still conflict with AGENTS.md — run \`nice-and-tidy clean\` to review ${
+            flagged.length === 1 ? 'it' : 'them'
+          }.`,
+        )}\n`,
+      )
+    }
   }
 
   const undecided = items.filter((item) => item.action === CONFLICT && !resolutions.has(item.path))

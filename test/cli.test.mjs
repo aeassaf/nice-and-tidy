@@ -304,6 +304,99 @@ test('bootstrap refuses loudly rather than guessing when init has not run yet', 
   assert.match(stderr, /run.*init.*first/i)
 })
 
+// --- clean: deprecated per-tool convention files -------------------------------
+
+test('clean finds nothing in a plain repo', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+
+  const { code, stdout } = await cli(['clean'], { cwd })
+
+  assert.equal(code, 0)
+  assert.match(stdout, /Nothing found/)
+})
+
+test('clean --dry-run reports a deprecated file and writes nothing', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+  await writeFile(join(cwd, '.cursorrules'), 'always use tabs\n')
+
+  const { code, stdout } = await cli(['clean', '--dry-run'], { cwd })
+
+  assert.equal(code, 0)
+  assert.match(stdout, /\.cursorrules/)
+  assert.equal(await readFile(join(cwd, '.cursorrules'), 'utf8'), 'always use tabs\n')
+})
+
+test('clean skips a file that already points at AGENTS.md', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+  await writeFile(join(cwd, '.windsurfrules'), 'See AGENTS.md at the repo root.\n')
+
+  const { code, stdout } = await cli(['clean'], { cwd })
+
+  assert.equal(code, 0)
+  assert.match(stdout, /Nothing found/)
+  assert.equal(await readFile(join(cwd, '.windsurfrules'), 'utf8'), 'See AGENTS.md at the repo root.\n')
+})
+
+test('clean with no terminal and no --force reports and writes nothing', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+  await writeFile(join(cwd, '.cursorrules'), 'always use tabs\n')
+
+  const { code, stdout, stderr } = await cli(['clean'], { cwd })
+
+  assert.equal(code, 1)
+  assert.match(stdout, /\.cursorrules/)
+  assert.match(stderr, /--force/)
+  assert.equal(await readFile(join(cwd, '.cursorrules'), 'utf8'), 'always use tabs\n')
+})
+
+test('clean --force replaces every flagged file with a pointer to AGENTS.md', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+  await writeFile(join(cwd, '.cursorrules'), 'always use tabs\n')
+  await writeFile(join(cwd, '.windsurfrules'), 'some old note\n')
+
+  const { code, stdout } = await cli(['clean', '--force'], { cwd })
+
+  assert.equal(code, 0)
+  assert.match(stdout, /2 replaced, 0 left alone/)
+  assert.match(await readFile(join(cwd, '.cursorrules'), 'utf8'), /AGENTS\.md/)
+  assert.match(await readFile(join(cwd, '.windsurfrules'), 'utf8'), /AGENTS\.md/)
+})
+
+test('clean --force is a no-op the second time — the pointer already mentions AGENTS.md', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+  await writeFile(join(cwd, '.cursorrules'), 'always use tabs\n')
+  await cli(['clean', '--force'], { cwd })
+  const pointer = await readFile(join(cwd, '.cursorrules'), 'utf8')
+
+  const { code, stdout } = await cli(['clean'], { cwd })
+
+  assert.equal(code, 0)
+  assert.match(stdout, /Nothing found/)
+  assert.equal(await readFile(join(cwd, '.cursorrules'), 'utf8'), pointer)
+})
+
+test('init points at clean when a deprecated convention file is found', async (t) => {
+  const cwd = await tempDir(t)
+  await writeFile(join(cwd, '.cursorrules'), 'always use tabs\n')
+
+  const { stdout } = await cli(['init'], { cwd })
+
+  assert.match(stdout, /nice-and-tidy clean/)
+  assert.match(stdout, /\.cursorrules/)
+})
+
+test('init says nothing about clean when there is nothing to flag', async (t) => {
+  const cwd = await tempDir(t)
+  const { stdout } = await cli(['init'], { cwd })
+  assert.doesNotMatch(stdout, /nice-and-tidy clean/)
+})
+
 // --- the non-negotiable, at the surface a person sees -------------------------
 
 test('help and bootstrap name no agent or product', async (t) => {
