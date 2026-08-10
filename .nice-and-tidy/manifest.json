@@ -1,5 +1,6 @@
 {
   "manifestVersion": 1,
+  "generatorVersion": "0.3.0",
   "files": {
     ".claude/skills/nice-and-tidy/SKILL.md": "5e58dcdb04a939dd0ab29dde83880f69f0a526ec6d8fffe0668cae3971b8a99a",
     ".cursor/rules/nice-and-tidy.mdc": "bcf7b7dea37d2254667ef4f5a688f282f386936cd642590d5d07a5097931444a",
@@ -7,12 +8,12 @@
     ".github/pull_request_template.md": "7fa4fbde68616a6aa6212a755c2eebdefc37e3e086c20d857b5381e319a86316",
     ".github/workflows/ci.yml": "6ea319aea6dabe4d1c37680c7657889b97d1d0a98625a821e56b72d97411682d",
     ".github/workflows/pr-description.yml": "e9ca60ad94a0f4903926e33b0849b224e3bb4c8f061ab958550b2a11834c77f6",
-    "AGENTS.md": "6d3e2bf74670d31b3816168b160244e4dfc62286b9b5ff8885db558b1fbfae8e",
+    "AGENTS.md": "25a775c677b6dd20da8fbb917b8362c79c7a7def9b79f6ba75447dbcb3603c54",
     "CLAUDE.md": "b976708a94aab069356ff419fd72d7d284006e63585e66c9becb5c0e50ca9e46",
     "docs/BRANCHING.md": "ebedc7fe481424074d3615186a5168004796ace011e08cc4050267aec55d63bb",
     "docs/COMMIT_CONVENTIONS.md": "ffa2d5cca8244ded26b4c1620aa5c3b3bb235e37c388adbc6c7c309359fc16f3",
     "docs/RESUME_HERE.md": "c25cee4160ce2d2eb4785d3b5f24019c7bfcb5ea0674229b0db322b69062b61e",
-    "docs/SESSION_PROTOCOL.md": "09060fdf0c988ea364190a134293da3c930e859a237714214b889829e25401cf",
+    "docs/SESSION_PROTOCOL.md": "70a075ef3ca533a1183ee091cf82c90d6b472d0bbfa7f32c916840b2fdc4c5aa",
     "docs/WORKFLOW.md": "0d0c7ea6e75ab2713e8c5e99cade15e906ca3f0cddaec9e58b179b016dccff9e",
     "nice-and-tidy.config.json": "d10780d4a408f581cd9cd1edc4ceb51193768c4124a85ff7388ddeb72cf1e1fc",
     "scripts/check-pr-description.mjs": "a81c2a21cb5d240b8f5c1b7a3a933b663d5e2c9563514e8ed44dbac8a82aadcc",
