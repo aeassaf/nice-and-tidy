@@ -104,7 +104,7 @@ service to authenticate against, no daemon to keep running.
 
 ## Status
 
-`init`, `diff`, `upgrade`, `bootstrap` and `clean` all work. 193 tests, mostly negative — an
+`init`, `diff`, `upgrade`, `bootstrap` and `clean` all work. 197 tests, mostly negative — an
 engine whose job is "do not destroy the user's work" is only trustworthy if something
 proves it refuses to.
 
@@ -212,9 +212,13 @@ For an appended file the manifest records the hash of the block, not of the whol
 file — recording the whole file is what would let a later run mistake your content for
 ours and replace it without asking.
 
-Two files can't take a block: `.cursor/rules/nice-and-tidy.mdc` and the Skill. Their
-generated content opens with YAML frontmatter, which only means anything at the top of
-a file. `--append` leaves them alone and says which ones.
+Two things are left alone instead of appended to, and `--append` says which and why:
+
+- `.cursor/rules/nice-and-tidy.mdc` and the Skill. Their generated content opens with
+  YAML frontmatter, which only means anything at the top of a file.
+- A file **this tool wrote** that was then hand-edited. Its content is already a copy
+  of ours, so appending would leave two of them in one file. That conflict is about a
+  version, not about ownership — `--force` and keep-mine are its answers.
 
 ## Commands
 

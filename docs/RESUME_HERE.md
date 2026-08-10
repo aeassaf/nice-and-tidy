@@ -16,7 +16,7 @@ this file exists and the rules for keeping it current.
 | `bootstrap` | PR template, description gate, CI, labels, milestones. Needs `gh`. |
 | `clean` | Finds deprecated per-tool convention files (`.cursorrules`, `.windsurfrules`) and offers to replace them with a pointer to `AGENTS.md`. Never deletes. |
 
-193 tests pass (`npm test`). No Project board is linked to this repo, so there is no
+197 tests pass (`npm test`). No Project board is linked to this repo, so there is no
 board field to move; `git log`/the PR itself is the source of truth on state.
 
 ## This session — the append option (#29)
@@ -49,6 +49,14 @@ Your content stays, the generated content goes below it, fenced by two markers.
   that opt out (`.cursor/rules/nice-and-tidy.mdc`, the Skill) do so for a second
   reason: their content opens with YAML frontmatter, which only means anything at the
   top of a file.
+- **Append is not offered for `edited` conflicts, only `untracked` ones.** Caught late,
+  after the first advisor pass. `--append` on a file this tool wrote and somebody then
+  edited was stacking a complete second copy of the generated content below their
+  version — verified turning a 212-line `AGENTS.md` into 425. Append answers "this file
+  is somebody else's"; that conflict is about a *version*, and overwrite/keep-mine are
+  its answers. `plan.js` now omits `appendWrite` on the `edited` branch, and
+  `resolveConflicts#refusals` gives the two left-alone reasons separately rather than
+  telling somebody their appendable file "cannot take a block."
 - **Bug caught by a test, not by review:** `replaceRegion` grew the file by one newline
   per run, because the end marker's own line terminator was landing in `after`.
   `findRegion` now consumes it. `test/region.test.mjs` pins idempotency.
@@ -114,7 +122,7 @@ Your content stays, the generated content goes below it, fenced by two markers.
 ## Running it
 
 ```bash
-npm test                              # 193
+npm test                              # 197
 node bin/cli.js diff                  # everything unchanged/kept
 node bin/cli.js init --append         # keeps existing files, adds the block below them
 node bin/cli.js clean --dry-run       # reports any deprecated convention files, writes nothing
