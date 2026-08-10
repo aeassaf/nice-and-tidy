@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-import { readFile } from 'node:fs/promises'
 import { parseArgs } from 'node:util'
 
 import { bootstrap } from '../src/commands/bootstrap.js'
 import { EXIT_USAGE, init } from '../src/commands/init.js'
+import { upgrade } from '../src/commands/upgrade.js'
+import { packageVersion } from '../src/version.js'
 
 const OPTIONS = {
   global: { type: 'boolean', short: 'g', default: false },
@@ -25,6 +26,8 @@ const USAGE = `nice-and-tidy — an issue-first Git workflow and session protoco
 Usage
   nice-and-tidy init [options]        write the instruction files and the config
   nice-and-tidy diff [options]        show what init would change, write nothing
+  nice-and-tidy upgrade [options]     pull in a newer release: re-run init, and offer
+                                       to add any config keys the old file predates
   nice-and-tidy bootstrap [options]   one-time GitHub-side setup: PR template, its
                                        description gate, labels, milestones
 
@@ -44,14 +47,13 @@ and \`gh\` installed and logged in. It creates labels and milestones from config
 skipping ones that already exist — and prints, but never runs, the command to flip
 the repository's default branch.
 
+\`upgrade\` needs \`nice-and-tidy init\` run first (it reads the manifest init writes)
+and refuses to run against an older release than the one already installed unless
+you pass \`--force\`.
+
 Re-running is safe. A file this tool wrote and nobody touched gets updated; a file
 somebody edited gets shown as a diff and left alone unless you say otherwise.
 `
-
-async function version() {
-  const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
-  return pkg.version
-}
 
 async function main(argv) {
   let parsed
@@ -66,7 +68,7 @@ async function main(argv) {
   const command = positionals[0] ?? (values.help || values.version ? null : 'help')
 
   if (values.version) {
-    process.stdout.write(`${await version()}\n`)
+    process.stdout.write(`${await packageVersion()}\n`)
     return 0
   }
   if (values.help || command === 'help' || command === null) {
@@ -104,6 +106,8 @@ async function main(argv) {
       return init({ ...shared, dryRun: values['dry-run'] })
     case 'diff':
       return init({ ...shared, dryRun: true, force: false, keepExisting: false })
+    case 'upgrade':
+      return upgrade({ ...shared, dryRun: values['dry-run'] })
     case 'bootstrap':
       return bootstrap({ ...shared, dryRun: values['dry-run'] })
     default:
