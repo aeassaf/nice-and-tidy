@@ -18,16 +18,37 @@ export const toPosix = (path) => path.split(sep).join('/')
  * Phase 1 writes instruction files only. The pull request template, the description
  * gate and its workflow are `bootstrap`'s payload, not `init`'s — they are GitHub-side
  * setup, and `init` makes no GitHub-side changes.
+ *
+ * `appendable` marks the files a conflict can be answered by adding to rather than
+ * replacing — see `region.js`. It is opt-in, and the two that opt out do so for the
+ * same reason: their generated content opens with YAML frontmatter, which only has
+ * meaning at the top of a file. Appended halfway down, it is a stray `---` block and
+ * the directives it carries are silently lost.
  */
 const LOCAL_FILES = [
-  { target: 'agents-md', template: 'AGENTS.md.tmpl', path: 'AGENTS.md' },
-  { target: 'agents-md', template: 'workflow/WORKFLOW.md.tmpl', path: 'docs/WORKFLOW.md' },
-  { target: 'agents-md', template: 'workflow/BRANCHING.md.tmpl', path: 'docs/BRANCHING.md' },
-  { target: 'agents-md', template: 'workflow/COMMIT_CONVENTIONS.md.tmpl', path: 'docs/COMMIT_CONVENTIONS.md' },
-  { target: 'agents-md', template: 'protocol/SESSION_PROTOCOL.md.tmpl', path: 'docs/SESSION_PROTOCOL.md' },
-  { target: 'claude', template: 'shims/CLAUDE.md.tmpl', path: 'CLAUDE.md' },
+  { target: 'agents-md', template: 'AGENTS.md.tmpl', path: 'AGENTS.md', appendable: true },
+  { target: 'agents-md', template: 'workflow/WORKFLOW.md.tmpl', path: 'docs/WORKFLOW.md', appendable: true },
+  { target: 'agents-md', template: 'workflow/BRANCHING.md.tmpl', path: 'docs/BRANCHING.md', appendable: true },
+  {
+    target: 'agents-md',
+    template: 'workflow/COMMIT_CONVENTIONS.md.tmpl',
+    path: 'docs/COMMIT_CONVENTIONS.md',
+    appendable: true,
+  },
+  {
+    target: 'agents-md',
+    template: 'protocol/SESSION_PROTOCOL.md.tmpl',
+    path: 'docs/SESSION_PROTOCOL.md',
+    appendable: true,
+  },
+  { target: 'claude', template: 'shims/CLAUDE.md.tmpl', path: 'CLAUDE.md', appendable: true },
   { target: 'claude', template: 'skill/SKILL.md.tmpl', path: '.claude/skills/nice-and-tidy/SKILL.md' },
-  { target: 'copilot', template: 'shims/copilot-instructions.md.tmpl', path: '.github/copilot-instructions.md' },
+  {
+    target: 'copilot',
+    template: 'shims/copilot-instructions.md.tmpl',
+    path: '.github/copilot-instructions.md',
+    appendable: true,
+  },
   { target: 'cursor', template: 'shims/cursor-rules.mdc.tmpl', path: '.cursor/rules/nice-and-tidy.mdc' },
 ]
 
@@ -41,7 +62,7 @@ const LOCAL_FILES = [
  * printed suggestion and a human runs it.
  */
 const GLOBAL_FILES = [
-  { target: 'agents-md', template: 'AGENTS.md.tmpl', path: '.config/nice-and-tidy/AGENTS.md' },
+  { target: 'agents-md', template: 'AGENTS.md.tmpl', path: '.config/nice-and-tidy/AGENTS.md', appendable: true },
   { target: 'claude', template: 'skill/SKILL.md.tmpl', path: '.claude/skills/nice-and-tidy/SKILL.md' },
 ]
 
@@ -77,6 +98,7 @@ export async function buildPayload(scope, config) {
       contents: render(source, model, { origin: `templates/${file.template}` }),
       ownership: GENERATED,
       target: file.target,
+      appendable: file.appendable === true,
     })
   }
 

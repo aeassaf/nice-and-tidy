@@ -14,10 +14,13 @@ import { test } from 'node:test'
 import { hashContent } from '../src/hash.js'
 import { emptyManifest, readManifest } from '../src/manifest.js'
 import { ADOPT, CONFLICT, CREATE, GENERATED, KEPT, UNCHANGED, UPDATE, applyPlan, planFiles } from '../src/plan.js'
+import { appendRegion, findRegion, wrapRegion } from '../src/region.js'
 import { packageVersion } from '../src/version.js'
 import { tempDir } from './helpers.mjs'
 
 const entry = (path, contents, ownership = GENERATED) => ({ path, contents, ownership })
+
+const appendable = (path, contents) => ({ ...entry(path, contents), appendable: true })
 
 const manifestWith = (files) => ({ ...emptyManifest(), files })
 
@@ -185,6 +188,223 @@ test('nested directories are created on the way', async (t) => {
   const items = await planFiles(root, [entry('.claude/skills/x/SKILL.md', 'hi\n')], emptyManifest())
   await applyPlan(items, { manifest: emptyManifest(), manifestPath: join(root, 'm.json') })
   assert.equal(await readFile(join(root, '.claude/skills/x/SKILL.md'), 'utf8'), 'hi\n')
+})
+
+// --- append: the third answer -------------------------------------------------
+
+const MINE = '# My own instructions\n\nNever deploy on a Friday.\n'
+
+test('appending keeps what was there and adds our content below it', async (t) => {
+  const root = await tempDir(t)
+  await writeFile(join(root, 'AGENTS.md'), MINE)
+  const items = await planFiles(root, [appendable('AGENTS.md', 'generated\n')], emptyManifest())
+
+  assert.equal(items[0].action, CONFLICT)
+  await applyPlan(items, {
+    manifest: emptyManifest(),
+    manifestPath: join(root, 'm.json'),
+    resolutions: new Map([['AGENTS.md', 'append']]),
+  })
+
+  const written = await readFile(join(root, 'AGENTS.md'), 'utf8')
+  assert.ok(written.startsWith(MINE), "the user's content was moved or lost")
+  assert.equal(findRegion(written).body, 'generated\n')
+})
+
+test('an appended file records the block, never the whole file', async (t) => {
+  // The one that matters. Recording the whole file would make the next run read
+  // `update` — the file on disk matching what we last wrote — and replace somebody's
+  // own instructions with a bare copy of ours, without asking.
+  const root = await tempDir(t)
+  await writeFile(join(root, 'AGENTS.md'), MINE)
+  const items = await planFiles(root, [appendable('AGENTS.md', 'generated\n')], emptyManifest())
+
+  const applied = await applyPlan(items, {
+    manifest: emptyManifest(),
+    manifestPath: join(root, 'm.json'),
+    resolutions: new Map([['AGENTS.md', 'append']]),
+  })
+
+  assert.equal(applied.manifest.files['AGENTS.md'], hashContent('generated\n'))
+  assert.notEqual(applied.manifest.files['AGENTS.md'], hashContent(await readFile(join(root, 'AGENTS.md'), 'utf8')))
+})
+
+test('a re-run over an appended file asks nothing and writes nothing', async (t) => {
+  const root = await tempDir(t)
+  await writeFile(join(root, 'AGENTS.md'), appendRegion(MINE, 'generated\n'))
+  const manifest = manifestWith({ 'AGENTS.md': hashContent('generated\n') })
+
+  const plan = await planOne(root, appendable('AGENTS.md', 'generated\n'), manifest)
+
+  assert.equal(plan.action, UNCHANGED)
+})
+
+test('editing outside the block is not an edit of ours', async (t) => {
+  // The whole point of a region. Their half of the file is theirs, and a tool that
+  // asked about every change to it would be unusable in the repo it was installed in.
+  const root = await tempDir(t)
+  await writeFile(join(root, 'AGENTS.md'), appendRegion(`${MINE}\n- And one more rule.\n`, 'generated\n'))
+  const manifest = manifestWith({ 'AGENTS.md': hashContent('generated\n') })
+
+  assert.equal((await planOne(root, appendable('AGENTS.md', 'generated\n'), manifest)).action, UNCHANGED)
+})
+
+test('editing inside the block is a conflict, and the diff is scoped to the block', async (t) => {
+  const root = await tempDir(t)
+  await writeFile(join(root, 'AGENTS.md'), appendRegion(MINE, 'generated, then edited\n'))
+  const manifest = manifestWith({ 'AGENTS.md': hashContent('generated\n') })
+
+  const plan = await planOne(root, appendable('AGENTS.md', 'generated\n'), manifest)
+
+  assert.equal(plan.action, CONFLICT)
+  assert.equal(plan.reason, 'region-edited')
+  assert.ok(plan.write.startsWith(MINE), 'answering this conflict must not take the whole file')
+})
+
+test('a config change updates the block and leaves the rest of the file alone', async (t) => {
+  const root = await tempDir(t)
+  await writeFile(join(root, 'AGENTS.md'), appendRegion(MINE, 'base: develop\n'))
+  const manifest = manifestWith({ 'AGENTS.md': hashContent('base: develop\n') })
+  const items = await planFiles(root, [appendable('AGENTS.md', 'base: main\n')], manifest)
+
+  assert.equal(items[0].action, UPDATE)
+  await applyPlan(items, { manifest, manifestPath: join(root, 'm.json') })
+
+  const written = await readFile(join(root, 'AGENTS.md'), 'utf8')
+  assert.ok(written.startsWith(MINE))
+  assert.equal(findRegion(written).body, 'base: main\n')
+})
+
+test('an update over an appended file does not grow it a line at a time', async (t) => {
+  const root = await tempDir(t)
+  const path = join(root, 'AGENTS.md')
+  await writeFile(path, appendRegion(MINE, 'v1\n'))
+  let manifest = manifestWith({ 'AGENTS.md': hashContent('v1\n') })
+
+  for (const version of ['v2\n', 'v3\n']) {
+    const items = await planFiles(root, [appendable('AGENTS.md', version)], manifest)
+    manifest = (await applyPlan(items, { manifest, manifestPath: join(root, 'm.json') })).manifest
+  }
+
+  assert.equal(await readFile(path, 'utf8'), appendRegion(MINE, 'v3\n'))
+})
+
+// --- append: the refusals -----------------------------------------------------
+
+test('a file that did not opt in is never appended to', async (t) => {
+  // Its generated content opens with frontmatter, which means nothing halfway down a
+  // file — and the markers are an HTML comment, which is a syntax error in a workflow.
+  const root = await tempDir(t)
+  await writeFile(join(root, 'rules.mdc'), MINE)
+  const items = await planFiles(root, [entry('rules.mdc', 'generated\n')], emptyManifest())
+
+  assert.equal(items[0].appendWrite, undefined)
+  await applyPlan(items, {
+    manifest: emptyManifest(),
+    manifestPath: join(root, 'm.json'),
+    resolutions: new Map([['rules.mdc', 'append']]),
+  })
+
+  assert.equal(await readFile(join(root, 'rules.mdc'), 'utf8'), MINE, 'append fell through to a write it cannot do')
+})
+
+test('an append asked for on a file that cannot take one leaves the manifest stale', async (t) => {
+  const root = await tempDir(t)
+  await writeFile(join(root, 'rules.mdc'), MINE)
+  const items = await planFiles(root, [entry('rules.mdc', 'generated\n')], emptyManifest())
+
+  const applied = await applyPlan(items, {
+    manifest: emptyManifest(),
+    manifestPath: join(root, 'm.json'),
+    resolutions: new Map([['rules.mdc', 'append']]),
+  })
+
+  // Same rule as a skip: recording anything here marks the file as ours and the next
+  // run overwrites it without asking.
+  assert.equal(applied.manifest.files['rules.mdc'], undefined)
+})
+
+test('a file this tool wrote and somebody then edited is not offered an append', async (t) => {
+  // Append answers "this file is somebody else's and both lots of content should
+  // survive." Here the content already is a copy of ours, and appending would leave
+  // two of them in one file. That conflict is about a version, and overwrite or
+  // keep-mine are its answers.
+  const root = await tempDir(t)
+  await writeFile(join(root, 'AGENTS.md'), 'generated\nmy own note\n')
+  const manifest = manifestWith({ 'AGENTS.md': hashContent('generated\n') })
+
+  const plan = await planOne(root, appendable('AGENTS.md', 'generated\n'), manifest)
+
+  assert.equal(plan.reason, 'edited')
+  assert.equal(plan.appendWrite, undefined)
+})
+
+test('an append asked for on our own edited file writes nothing at all', async (t) => {
+  const root = await tempDir(t)
+  await writeFile(join(root, 'AGENTS.md'), 'generated\nmy own note\n')
+  const manifest = manifestWith({ 'AGENTS.md': hashContent('generated\n') })
+  const items = await planFiles(root, [appendable('AGENTS.md', 'generated\n')], manifest)
+
+  const applied = await applyPlan(items, {
+    manifest,
+    manifestPath: join(root, 'm.json'),
+    resolutions: new Map([['AGENTS.md', 'append']]),
+  })
+
+  assert.equal(await readFile(join(root, 'AGENTS.md'), 'utf8'), 'generated\nmy own note\n')
+  assert.equal(applied.manifest.files['AGENTS.md'], hashContent('generated\n'), 'the stale record has to survive')
+})
+
+test('deleting the markers degrades to a conflict, not to a silent overwrite', async (t) => {
+  const root = await tempDir(t)
+  await writeFile(join(root, 'AGENTS.md'), `${MINE}\ngenerated\n`)
+  const manifest = manifestWith({ 'AGENTS.md': hashContent('generated\n') })
+
+  const plan = await planOne(root, appendable('AGENTS.md', 'generated\n'), manifest)
+
+  assert.equal(plan.action, CONFLICT)
+})
+
+test('pasting a second pair of markers degrades to a conflict too', async (t) => {
+  const root = await tempDir(t)
+  await writeFile(join(root, 'AGENTS.md'), `${appendRegion(MINE, 'generated\n')}${wrapRegion('generated\n')}`)
+  const manifest = manifestWith({ 'AGENTS.md': hashContent('generated\n') })
+
+  const plan = await planOne(root, appendable('AGENTS.md', 'generated\n'), manifest)
+
+  assert.equal(plan.action, CONFLICT, 'two regions is a guess, and a guess here rewrites bytes we did not write')
+})
+
+test('appending a second time rewrites the block instead of stacking another one', async (t) => {
+  const root = await tempDir(t)
+  await writeFile(join(root, 'AGENTS.md'), appendRegion(MINE, 'edited by hand\n'))
+  const manifest = manifestWith({ 'AGENTS.md': hashContent('generated\n') })
+  const items = await planFiles(root, [appendable('AGENTS.md', 'generated\n')], manifest)
+
+  await applyPlan(items, {
+    manifest,
+    manifestPath: join(root, 'm.json'),
+    resolutions: new Map([['AGENTS.md', 'append']]),
+  })
+
+  const written = await readFile(join(root, 'AGENTS.md'), 'utf8')
+  assert.equal(written, appendRegion(MINE, 'generated\n'))
+  assert.equal(written.match(/nice-and-tidy:begin/g).length, 1)
+})
+
+test('overwrite on a file that is only partly ours still only takes the block', async (t) => {
+  const root = await tempDir(t)
+  await writeFile(join(root, 'AGENTS.md'), appendRegion(MINE, 'edited by hand\n'))
+  const manifest = manifestWith({ 'AGENTS.md': hashContent('generated\n') })
+  const items = await planFiles(root, [appendable('AGENTS.md', 'generated\n')], manifest)
+
+  await applyPlan(items, {
+    manifest,
+    manifestPath: join(root, 'm.json'),
+    resolutions: new Map([['AGENTS.md', 'overwrite']]),
+  })
+
+  assert.ok((await readFile(join(root, 'AGENTS.md'), 'utf8')).startsWith(MINE))
 })
 
 // --- manifest durability ------------------------------------------------------

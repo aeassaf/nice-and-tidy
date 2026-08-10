@@ -104,9 +104,9 @@ service to authenticate against, no daemon to keep running.
 
 ## Status
 
-`init`, `diff`, `bootstrap` and `clean` all work. 137 tests, mostly negative — an engine whose
-job is "do not destroy the user's work" is only trustworthy if something proves it
-refuses to.
+`init`, `diff`, `upgrade`, `bootstrap` and `clean` all work. 197 tests, mostly negative — an
+engine whose job is "do not destroy the user's work" is only trustworthy if something
+proves it refuses to.
 
 ## What `init` writes
 
@@ -174,8 +174,51 @@ When a conflict comes up:
 - Without a terminal, nothing is written and the exit code is `1`.
 - `--keep-existing` applies everything else and leaves conflicts alone. Exit `0`.
 - `--force` overwrites them.
+- `--append` — or `+` at the prompt — keeps your file *and* installs the content, one
+  below the other. See below.
 
 A skipped conflict stays a conflict. Nothing silently adopts a file you edited.
+
+### Appending, when you already have a `CLAUDE.md`
+
+Overwrite and keep-mine are both all-or-nothing. If your repo already has its own
+`CLAUDE.md`, `AGENTS.md` or `.github/copilot-instructions.md`, the third answer keeps
+both: your content stays where it is, and the generated content goes underneath it,
+fenced by two markers.
+
+```markdown
+# Working on acme-web                        ← yours. Never touched again.
+
+Run `pnpm dev` for the local server.
+
+<!-- nice-and-tidy:begin — generated. … -->  ← ours. Rewritten on every run.
+
+@AGENTS.md
+…
+<!-- nice-and-tidy:end -->
+```
+
+The markers are what a later run reads, so from then on the two halves are treated
+differently:
+
+| You change | Next run |
+|---|---|
+| Anything **outside** the markers | Nothing. That content is yours; the tool has no opinion on it. |
+| Anything **inside** them | `conflict` — diffed and left alone, same as any hand-edited file. |
+| Your config, changing what we'd generate | `update`, rewriting **only** what's between the markers. |
+| Delete or duplicate the markers | `conflict`. An ambiguous fence is never guessed at. |
+
+For an appended file the manifest records the hash of the block, not of the whole
+file — recording the whole file is what would let a later run mistake your content for
+ours and replace it without asking.
+
+Two things are left alone instead of appended to, and `--append` says which and why:
+
+- `.cursor/rules/nice-and-tidy.mdc` and the Skill. Their generated content opens with
+  YAML frontmatter, which only means anything at the top of a file.
+- A file **this tool wrote** that was then hand-edited. Its content is already a copy
+  of ours, so appending would leave two of them in one file. That conflict is about a
+  version, not about ownership — `--force` and keep-mine are its answers.
 
 ## Commands
 
@@ -193,6 +236,7 @@ nice-and-tidy clean         # find deprecated per-tool convention files that pre
 | `--dry-run` | Same as `diff`; for `clean`, report without writing anything. |
 | `--keep-existing` | Apply everything except conflicts. |
 | `--force` | Overwrite conflicts without asking; for `clean`, replace every flagged file with a pointer to `AGENTS.md`. |
+| `--append` | Keep conflicting files and add the generated content to the end of each, fenced by markers. Files whose content only works at the top of a file are left alone instead. |
 | `--gitflow` / `--no-gitflow` | Branch model. Only applies when creating the config. |
 
 Exit codes: `0` fine, `1` unresolved conflicts, `2` bad usage or bad config, `3`
@@ -214,8 +258,9 @@ adds the two things a plain re-run can't do:
   them, diffed like any other conflict — `nice-and-tidy.config.json` is yours once it
   exists, so `init` alone will never touch it, even to add a key you don't have yet
 
-Everything else — the file plan, `--keep-existing`, `--force`, the exit codes — is
-`init`'s, unchanged.
+Everything else — the file plan, `--keep-existing`, `--force`, `--append`, the exit
+codes — is `init`'s, unchanged. `--append` has nothing to add to a JSON config, so on
+the backfill question it means "leave it alone"; `--force` is how you take the new keys.
 
 ### `bootstrap`
 

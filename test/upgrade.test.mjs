@@ -140,6 +140,26 @@ test('--keep-existing leaves the config alone and still applies the rest', async
   assert.equal(await readFile(configPath, 'utf8'), mine)
 })
 
+test('--append leaves the config alone rather than blocking on a question it is not about', async (t) => {
+  // A config is JSON, with nowhere to put a block. Refusing the whole run over that
+  // would make `upgrade --append` unusable without a terminal, which is the one place
+  // the flag exists for.
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+
+  const configPath = join(cwd, CONFIG)
+  const config = JSON.parse(await readFile(configPath, 'utf8'))
+  delete config.scopes
+  const mine = `${JSON.stringify(config, null, 2)}\n`
+  await writeFile(configPath, mine)
+
+  const { code, stdout } = await cli(['upgrade', '--append'], { cwd })
+
+  assert.equal(code, 0)
+  assert.equal(await readFile(configPath, 'utf8'), mine)
+  assert.match(stdout, /nothing to add to a config file/)
+})
+
 test('--dry-run shows the config backfill diff and writes nothing', async (t) => {
   const cwd = await tempDir(t)
   await cli(['init'], { cwd })

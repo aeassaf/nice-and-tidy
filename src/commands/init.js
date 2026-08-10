@@ -23,6 +23,7 @@ export async function init(options) {
     global: isGlobal = false,
     force = false,
     keepExisting = false,
+    append = false,
     dryRun = false,
     gitflow,
     interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY),
@@ -71,6 +72,7 @@ export async function init(options) {
   const { outcome, resolutions } = await resolveConflicts(items, {
     force,
     keepExisting,
+    append,
     dryRun,
     interactive,
     input,
@@ -157,8 +159,9 @@ function summarise(items, result, { dryRun, idle }) {
   if (counted('update') > 0) parts.push(`${counted('update')} updated`)
   if (counted('adopt') > 0) parts.push(`${counted('adopt')} adopted`)
 
-  const overwritten = result.written.filter((item) => item.action === CONFLICT).length
-  if (overwritten > 0) parts.push(`${overwritten} overwritten`)
+  const resolved = (how) => result.written.filter((item) => item.action === CONFLICT && item.resolution === how).length
+  if (resolved('overwrite') > 0) parts.push(`${resolved('overwrite')} overwritten`)
+  if (resolved('append') > 0) parts.push(`${resolved('append')} appended to`)
 
   const left = result.skipped.filter(isConflict).length
   if (left > 0) parts.push(`${left} left alone`)

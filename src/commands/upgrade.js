@@ -28,6 +28,7 @@ export async function upgrade(options) {
     global: isGlobal = false,
     force = false,
     keepExisting = false,
+    append = false,
     dryRun = false,
     gitflow,
     interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY),
@@ -84,6 +85,7 @@ export async function upgrade(options) {
       rawConfigText,
       force,
       keepExisting,
+      append,
       dryRun,
       interactive,
       prompter,
@@ -97,6 +99,7 @@ export async function upgrade(options) {
       global: isGlobal,
       force,
       keepExisting,
+      append,
       dryRun,
       gitflow,
       interactive,
@@ -122,7 +125,18 @@ const BLOCKED = 'blocked'
  * nested `board`/`protocol` defaults); the diff against the raw file is entirely
  * "what's new," so nothing here needs to know which keys are actually new.
  */
-async function backfillConfig({ configPath, rawConfigText, force, keepExisting, dryRun, interactive, prompter, out, err }) {
+async function backfillConfig({
+  configPath,
+  rawConfigText,
+  force,
+  keepExisting,
+  append,
+  dryRun,
+  interactive,
+  prompter,
+  out,
+  err,
+}) {
   if (rawConfigText === null) return SKIPPED
 
   let existing
@@ -146,6 +160,16 @@ async function backfillConfig({ configPath, rawConfigText, force, keepExisting, 
 
   if (keepExisting) {
     out(`\n  left ${CONFIG_FILENAME} alone (--keep-existing).\n`)
+    return SKIPPED
+  }
+
+  // `--append` is an answer about instruction files, and it has no meaning here: a
+  // config is JSON, with nowhere to put a block. Treating it as "leave it alone" is
+  // what keeps `upgrade --append` usable without a terminal — the alternative is
+  // blocking the whole run on a question this flag was never about. `--force` is
+  // still the way to take the new keys.
+  if (append) {
+    out(`\n  left ${CONFIG_FILENAME} alone — --append has nothing to add to a config file.\n`)
     return SKIPPED
   }
 
