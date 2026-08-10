@@ -39,7 +39,7 @@ export async function readManifest(manifestPath) {
     parsed = JSON.parse(raw)
   } catch {
     // A corrupt manifest must not be load-bearing. Treating it as empty degrades to
-    // "every generated file looks foreign," which stops and asks — the safe failure.
+    // "every generated file looks foreign," which stops and asks; the safe failure.
     return emptyManifest()
   }
 
@@ -48,7 +48,7 @@ export async function readManifest(manifestPath) {
   }
 
   // Written by a version of this tool that predates `generatorVersion`, or by
-  // something else entirely — either way, "unknown" is the honest answer, not "".
+  // something else entirely; either way, "unknown" is the honest answer, not "".
   const generatorVersion = typeof parsed.generatorVersion === 'string' ? parsed.generatorVersion : null
 
   const files = {}

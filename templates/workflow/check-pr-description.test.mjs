@@ -32,7 +32,7 @@ ${TRICKY}
 None
 
 ## Screenshots
-None — no user-visible change.
+None; no user-visible change.
 `
 
 const sectionsIn = (body) => [...parseSections(body).keys()]
@@ -159,7 +159,7 @@ test('a heading with no body before the next heading is empty', () => {
   assert.equal(problems[0].section, 'Dependencies')
 })
 
-test('CRLF line endings parse identically — GitHub sends them', () => {
+test('CRLF line endings parse identically; GitHub sends them', () => {
   assert.deepEqual(validate(filled.replace(/\n/g, '\r\n')), [])
 })
 

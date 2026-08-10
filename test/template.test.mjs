@@ -72,7 +72,7 @@ test('a placeholder inside a conditional branch is still substituted', () => {
 })
 
 test('a dropped branch does not have to satisfy the placeholder rules', () => {
-  // The else branch below mentions {{ nope }}, which is not in the model — it never
+  // The else branch below mentions {{ nope }}, which is not in the model; it never
   // has to be, because gitflow: true never renders it.
   const source = '{{#if gitflow}}fine{{else}}{{ nope }}{{/if}}'
   assert.equal(render(source, { gitflow: true }), 'fine')

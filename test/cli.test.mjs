@@ -1,13 +1,13 @@
 /**
- * End to end, in a real directory — through the real binary wherever that is possible.
+ * End to end, in a real directory; through the real binary wherever that is possible.
  *
  * The unit tests prove the engine's states. These prove the thing a person actually
- * runs — including that a second run is silent, and that a hand-edited file survives
+ * runs; including that a second run is silent, and that a hand-edited file survives
  * a run with no terminal to ask on.
  *
  * The one exception is the interactive prompt: `interactive` comes from stdin being a
  * TTY, and a subprocess spawned by the test runner never has one. That test calls
- * `init` in process with a pair of streams instead, which is the same path — `init`
+ * `init` in process with a pair of streams instead, which is the same path; `init`
  * does not know who is holding the other end.
  */
 import assert from 'node:assert/strict'
@@ -144,7 +144,7 @@ test('a custom protocol.memoryFile path is where the scaffold lands', async (t) 
   assert.equal(await exists(join(cwd, 'docs/RESUME_HERE.md')), true, 'the first scaffold is not deleted on a path change')
 })
 
-test('a global install never scaffolds a memory file — it has no single repo to belong to', async (t) => {
+test('a global install never scaffolds a memory file; it has no single repo to belong to', async (t) => {
   const cwd = await tempDir(t)
   const home = await tempDir(t)
   await cli(['init', '--global'], { cwd, env: { HOME: home } })
@@ -311,7 +311,7 @@ test('append is offered as a way out when there is no terminal to ask on', async
 test('answering + at the prompt appends, and only the appendable file is offered it', async (t) => {
   // In process rather than through the binary: `interactive` comes from stdin being a
   // TTY, and a subprocess spawned by the test runner never has one. Same path a person
-  // takes — `init` does not know who is holding the other end of the stream.
+  // takes; `init` does not know who is holding the other end of the stream.
   const cwd = await tempDir(t)
   await writeFile(join(cwd, 'CLAUDE.md'), MINE)
   await mkdir(join(cwd, '.cursor/rules'), { recursive: true })
@@ -362,7 +362,7 @@ test('diff writes nothing at all, not even on a clean directory', async (t) => {
   }
 })
 
-test('diff reports a conflict without failing — it is a report', async (t) => {
+test('diff reports a conflict without failing; it is a report', async (t) => {
   const cwd = await tempDir(t)
   await cli(['init'], { cwd })
   await appendFile(join(cwd, 'AGENTS.md'), '\nmine\n')
@@ -517,7 +517,7 @@ test('clean --force replaces every flagged file with a pointer to AGENTS.md', as
   assert.match(await readFile(join(cwd, '.windsurfrules'), 'utf8'), /AGENTS\.md/)
 })
 
-test('clean --force is a no-op the second time — the pointer already mentions AGENTS.md', async (t) => {
+test('clean --force is a no-op the second time; the pointer already mentions AGENTS.md', async (t) => {
   const cwd = await tempDir(t)
   await cli(['init'], { cwd })
   await writeFile(join(cwd, '.cursorrules'), 'always use tabs\n')

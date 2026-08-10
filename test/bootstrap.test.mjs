@@ -1,6 +1,6 @@
 /**
  * bootstrap's own logic (what to create, what to skip, when to refuse) tested with a
- * fake `gh` — no real binary, no network, same DI shape `init.js`'s tests use for I/O.
+ * fake `gh`; no real binary, no network, same DI shape `init.js`'s tests use for I/O.
  */
 import assert from 'node:assert/strict'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'

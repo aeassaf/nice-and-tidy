@@ -13,7 +13,7 @@
 <!--
   What a reviewer would not guess from the diff: the non-obvious decision, the thing
   that looks wrong but is right, the constraint that forced an unusual shape.
-  If something is knowingly imperfect at merge time, say so here — that is what this
+  If something is knowingly imperfect at merge time, say so here; that is what this
   section is for. "Nothing" is a valid answer for a routine change.
 -->
 
@@ -25,12 +25,12 @@
 
 <!--
   Dependencies on other projects, PRs, or testing. Version pins that moved and why.
-  "None" is a valid answer — write it rather than leaving this blank.
+  "None" is a valid answer; write it rather than leaving this blank.
 -->
 
 ## Screenshots
 
 <!--
-  UI screenshots. Drag images in here directly — GitHub uploads them.
-  "None — no user-visible change" is a valid answer.
+  UI screenshots. Drag images in here directly; GitHub uploads them.
+  "None; no user-visible change" is a valid answer.
 -->

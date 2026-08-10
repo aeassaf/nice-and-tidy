@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises'
  *
  * The brief drafted `.claude/workflow.config.json` and flagged it as bikeshed-later.
  * A config path this product owns is shipped surface, and shipped surface does not
- * name a specific agent. `.claude/skills/` is the opposite case — that path is
+ * name a specific agent. `.claude/skills/` is the opposite case; that path is
  * dictated by a loader we are writing *to*, which makes it a shim rather than
  * branding.
  */
@@ -14,14 +14,14 @@ export const CONFIG_FILENAME = 'nice-and-tidy.config.json'
 /**
  * Install targets. `agents-md` is the source of truth; the rest point at it.
  *
- * `windsurf` isn't here. Windsurf reads a root `AGENTS.md` natively — the same file
- * this tool already writes — and its own docs describe `.windsurfrules` as the
+ * `windsurf` isn't here. Windsurf reads a root `AGENTS.md` natively; the same file
+ * this tool already writes; and its own docs describe `.windsurfrules` as the
  * deprecated predecessor to that support, not a currently-recommended format. A shim
  * that points a deprecated file at a *replacement* mechanism is dead weight, not
  * defense in depth.
  *
  * Every entry here is a claim about what a third-party tool reads today, so each one
- * is worth re-checking against that tool's own docs before it is trusted — native
+ * is worth re-checking against that tool's own docs before it is trusted; native
  * `AGENTS.md` support is exactly the kind of thing that lands in a point release and
  * turns a useful shim into dead weight.
  */
@@ -70,7 +70,7 @@ export function validateConfig(config) {
   const known = defaultConfig()
   for (const key of Object.keys(config)) {
     if (!Object.hasOwn(known, key)) {
-      warnings.push(`Unknown key "${key}" — ignored. Check for a typo.`)
+      warnings.push(`Unknown key "${key}"; ignored. Check for a typo.`)
     }
   }
 
@@ -166,7 +166,7 @@ function validateMemoryFile(value) {
     return ['"protocol.memoryFile" must be relative to the repo root, not absolute.']
   }
   if (path.split('/').includes('..')) {
-    return ['"protocol.memoryFile" must stay inside the repo — no ".." segments.']
+    return ['"protocol.memoryFile" must stay inside the repo; no ".." segments.']
   }
   if (!path.endsWith('.md')) {
     return ['"protocol.memoryFile" must be a markdown file (.md).']
@@ -211,8 +211,7 @@ export function serialiseConfig(config) {
 
 /**
  * Flattens config into what templates are allowed to render: strings for
- * `{{ placeholder }}`, plus the small set of named booleans for `{{#if flag }}` —
- * see `template.js`. Nothing else survives this function; a template that needs a
+ * `{{ placeholder }}`, plus the small set of named booleans for `{{#if flag }}`; * see `template.js`. Nothing else survives this function; a template that needs a
  * new conditional gets a new named boolean here, not an object or array passed
  * through directly.
  */
@@ -236,8 +235,8 @@ export function viewModel(config) {
     labels:
       labels.length > 0
         ? labels.map((l) => `\`${l}\``).join(', ')
-        : 'no labels are configured yet — use whatever the repo already has',
-    // Boolean, for `{{#if gitflow}}` — every other key above is a string, for
+        : 'no labels are configured yet; use whatever the repo already has',
+    // Boolean, for `{{#if gitflow}}`; every other key above is a string, for
     // `{{ placeholder }}`. The two forms are deliberately not interchangeable; see
     // template.js.
     gitflow,

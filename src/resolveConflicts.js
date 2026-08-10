@@ -13,7 +13,7 @@ export const RESOLVED = 'resolved'
  *
  * Returns `{ outcome, resolutions }`. `outcome` is `RESOLVED` (proceed to apply,
  * `resolutions` may still be empty if nothing conflicted), `ABORTED` (a person typed
- * "a" — nothing should be written), or `NO_TERMINAL` (conflicts exist, nothing was
+ * "a"; nothing should be written), or `NO_TERMINAL` (conflicts exist, nothing was
  * there to ask, `--force`/`--keep-existing`/`--append` are the way out).
  */
 export async function resolveConflicts(
@@ -26,7 +26,7 @@ export async function resolveConflicts(
   if (conflicts.length > 0) {
     out(`\n${yellow(heading(conflicts, { dryRun, append }))}\n`)
     for (const item of conflicts) {
-      out(`\n  ${bold(item.path)} ${dim(`— ${CONFLICT_EXPLANATION[item.reason]}`)}\n`)
+      out(`\n  ${bold(item.path)} ${dim(`; ${CONFLICT_EXPLANATION[item.reason]}`)}\n`)
       // The diff shown is of the answer about to be given, not of overwriting
       // regardless: under `--append` these are different files, and a report that
       // showed one while the run did the other would be the drift this module exists
@@ -57,7 +57,7 @@ export async function resolveConflicts(
   if (interactive) {
     // A caller that already opened a prompter for its own question (`upgrade`'s
     // config backfill) passes it in so this reuses it instead of opening a second
-    // readline interface on the same stdin — see createPrompter's own note on why a
+    // readline interface on the same stdin; see createPrompter's own note on why a
     // second one silently loses every answer after the first.
     const prompter = shared ?? createPrompter({ input, output })
     try {
@@ -65,7 +65,7 @@ export async function resolveConflicts(
         out(`\n  ${bold(item.path)}\n`)
         const answer = await prompter.ask({ allowAppend: canAppend(item) })
         if (answer === 'abort') {
-          out(`\n  aborted — nothing was written.\n`)
+          out(`\n  aborted; nothing was written.\n`)
           return { outcome: ABORTED, resolutions }
         }
         resolutions.set(item.path, answer === 'overwrite' || answer === 'append' ? answer : 'skip')
@@ -103,11 +103,11 @@ function refusals(conflicts) {
 
   return [
     shape.length > 0 &&
-      `${shape.join(', ')} cannot take an appended block — ${shape.length === 1 ? 'its' : 'their'} generated ` +
+      `${shape.join(', ')} cannot take an appended block; ${shape.length === 1 ? 'its' : 'their'} generated ` +
         `content only means anything at the top of a file. Left alone.`,
     ours.length > 0 &&
       `${ours.join(', ')} ${ours.length === 1 ? 'was' : 'were'} written by this tool and then edited, so ` +
-        `appending would leave two copies of the same content. Left alone — --force takes this release's ` +
+        `appending would leave two copies of the same content. Left alone; --force takes this release's ` +
         `version, or answer per file in a terminal.`,
   ].filter(Boolean)
 }

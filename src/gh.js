@@ -13,7 +13,7 @@ export class GhError extends Error {
 
 /**
  * The one place this tool shells out to the `gh` CLI. Everything above this function
- * takes an injectable `exec` — the same DI shape `init.js` already uses for I/O — so
+ * takes an injectable `exec`; the same DI shape `init.js` already uses for I/O; so
  * bootstrap's own logic (what to create, what to skip) is testable without a real
  * `gh` binary or a real network call.
  */
@@ -29,7 +29,7 @@ export async function gh(args) {
 
 /**
  * Whether `gh` itself is reachable and logged in. Everything bootstrap does past the
- * file-copy step needs this — refusing loudly here, before any label or milestone
+ * file-copy step needs this; refusing loudly here, before any label or milestone
  * call, is what stops a half-finished run with no clear cause.
  */
 export async function authStatus(exec = gh) {

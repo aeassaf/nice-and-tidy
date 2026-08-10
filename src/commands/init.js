@@ -54,7 +54,7 @@ export async function init(options) {
   if (existing && gitflow !== undefined && gitflow !== config.gitflow) {
     out(
       `  ${yellow('note')}     ${CONFIG_FILENAME} already sets "gitflow": ${config.gitflow}, and the config wins.\n` +
-        `           Edit that key in the file to change it — a flag does not rewrite your config.\n`,
+        `           Edit that key in the file to change it; a flag does not rewrite your config.\n`,
     )
   }
 
@@ -63,7 +63,7 @@ export async function init(options) {
   const items = await planFiles(scope.root, entries, manifest)
 
   for (const item of items) {
-    const suffix = item.action === KEPT ? dim('  (yours — never rewritten)') : ''
+    const suffix = item.action === KEPT ? dim('  (yours; never rewritten)') : ''
     out(`  ${ACTION_LABEL[item.action]}  ${item.path}${suffix}\n`)
   }
 
@@ -95,7 +95,7 @@ export async function init(options) {
   const inert = inertTargets(scope.kind, config.targets)
   if (inert.length > 0) {
     out(
-      `${dim(`  ${inert.join(', ')} ${inert.length === 1 ? 'has' : 'have'} nothing to install at ${scope.kind} scope — skipped.`)}\n`,
+      `${dim(`  ${inert.join(', ')} ${inert.length === 1 ? 'has' : 'have'} nothing to install at ${scope.kind} scope; skipped.`)}\n`,
     )
   }
 
@@ -104,7 +104,7 @@ export async function init(options) {
     out(
       `\n  ${bold('One thing this did not do.')} Nothing loads a machine-wide AGENTS.md on its own.\n` +
         `  ${dim(`~/${canonical}`)} is a reference copy, not a hook. Per-repo installs are what\n` +
-        `  agents actually read — run this inside a repository for that.\n`,
+        `  agents actually read; run this inside a repository for that.\n`,
     )
   }
 
@@ -116,7 +116,7 @@ export async function init(options) {
         `\n  ${dim(
           `${flagged.length} older ${flagged.length === 1 ? 'file' : 'files'} here (${flagged
             .map((hit) => hit.path)
-            .join(', ')}) may still conflict with AGENTS.md — run \`nice-and-tidy clean\` to review ${
+            .join(', ')}) may still conflict with AGENTS.md; run \`nice-and-tidy clean\` to review ${
             flagged.length === 1 ? 'it' : 'them'
           }.`,
         )}\n`,
@@ -146,7 +146,7 @@ async function freshConfig(scope, cwd, gitflow) {
 function summarise(items, result, { dryRun, idle }) {
   if (idle) {
     // Every file is untouched, but the manifest still gets rewritten when the
-    // running version differs from the one it last recorded — that is real, not
+    // running version differs from the one it last recorded; that is real, not
     // nothing, and a repo that commits the manifest would otherwise see a dirty
     // file after a run that just claimed there was nothing to write.
     const versionOnly = !dryRun && result.manifestChanged

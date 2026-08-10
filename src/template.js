@@ -1,17 +1,17 @@
 /**
  * The smallest template engine that does the job, and no smaller.
  *
- * Phase 1 substituted flat scalars — `{{ baseBranch }}` — and nothing else. Phase 2
+ * Phase 1 substituted flat scalars; `{{ baseBranch }}`; and nothing else. Phase 2
  * adds one block form, `{{#if flag}}...{{else}}...{{/if}}`, for content that varies
  * in *structure* with config (the branch table that only makes sense under Gitflow).
- * Blocks do not nest — a template that needs nested conditionals is a template that
+ * Blocks do not nest; a template that needs nested conditionals is a template that
  * should be split, not an engine that should grow a parser.
  *
  * Lists are rendered into strings by the view model before they get here, so this
  * file never has to decide how a list should look.
  */
 
-// `else` is reserved for `{{else}}` inside a conditional block — never a valid
+// `else` is reserved for `{{else}}` inside a conditional block; never a valid
 // placeholder key, so the negative lookahead keeps it out of both the substitution
 // pass and `placeholdersIn`'s static scan.
 const PLACEHOLDER = /\{\{\s*(?!else\b)([A-Za-z][A-Za-z0-9_]*)\s*\}\}/g
@@ -28,7 +28,7 @@ export class TemplateError extends Error {
 /**
  * Resolves `{{#if flag}}` blocks before scalar substitution runs, so a placeholder
  * inside either branch is still filled by the normal pass below. `flag` must be a
- * boolean in the model — the same "fail loudly" rule as an unknown or non-string
+ * boolean in the model; the same "fail loudly" rule as an unknown or non-string
  * scalar placeholder, for the same reason: a flag that silently evaluates falsy
  * ships the wrong branch instead of failing the build.
  */

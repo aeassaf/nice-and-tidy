@@ -66,7 +66,7 @@ test('no shipped template names a specific agent or product', async () => {
 })
 
 test('the filename of a shim may name a product; its contents may not', async () => {
-  // The filename is dictated by whatever loads it — that is a shim, not branding.
+  // The filename is dictated by whatever loads it; that is a shim, not branding.
   // This test exists so the distinction is written down somewhere enforceable.
   const claudeShim = await read(join(TEMPLATES, 'shims', 'CLAUDE.md.tmpl'))
   assert.equal(BANNED.test(claudeShim), false)
@@ -84,7 +84,7 @@ test('every placeholder used is one the view model defines', async () => {
   }
 })
 
-// A leftover `{{` is our engine's syntax unresolved — except GitHub Actions' own
+// A leftover `{{` is our engine's syntax unresolved; except GitHub Actions' own
 // `${{ expression }}` runtime syntax, which is `{{` too, always preceded by `$`.
 // Our engine's placeholders never are, so the lookbehind tells the two apart without
 // having to special-case workflow files.

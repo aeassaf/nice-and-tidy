@@ -1,14 +1,14 @@
 # SESSION_PROTOCOL
 
-Why every session in {{ repo }} ends the way `AGENTS.md` — and, for a session running
-as an installed skill, the skill's own instructions — say it should. Those carry the
+Why every session in {{ repo }} ends the way `AGENTS.md`; and, for a session running
+as an installed skill, the skill's own instructions; say it should. Those carry the
 operational short form, read every reply; this file is where the reasoning behind it
 lives once, so neither has to restate it.
 
 ## Why concise, by default
 
 Default AI verbosity costs the reader attention they didn't agree to spend. That
-isn't a nice-to-have setting — it ships on, and this is the one place that says why
+isn't a nice-to-have setting; it ships on, and this is the one place that says why
 instead of just asserting it.
 
 **Always:** concise, complete, straight to the point. State results and decisions
@@ -17,17 +17,17 @@ directly. No restating the request, no narrating steps about to be taken, no pad
 ## The status block
 
 Every substantive reply ends with a compact block. Omit a line entirely when there's
-nothing to report for it — never print "None" as filler:
+nothing to report for it; never print "None" as filler:
 
-- **Questions pending** — brief bullets, awaiting {{ assignee }}.
-- **Progress** — % complete on the current task or milestone.
-- **Git/PR status** — branch, clean or uncommitted, PR number and state.
-- **Expected next input** — what {{ assignee }} should say next. If the session can
+- **Questions pending**; brief bullets, awaiting {{ assignee }}.
+- **Progress**; % complete on the current task or milestone.
+- **Git/PR status**; branch, clean or uncommitted, PR number and state.
+- **Expected next input**; what {{ assignee }} should say next. If the session can
   compact its own context or start fresh, and the conversation has grown long, say so
-  here — capability-gated phrasing, never a named command.
-- **Model guidance** — if the session runs on more than one capability tier or effort
+  here; capability-gated phrasing, never a named command.
+- **Model guidance**; if the session runs on more than one capability tier or effort
   setting, state the minimum the next step needs, every substantive reply, changed or
-  not — this line doesn't follow the "omit if nothing to report" rule above, because
+  not; this line doesn't follow the "omit if nothing to report" rule above, because
   there's always a current recommendation to state. A session with no tiers to choose
   between omits the whole line instead.
 
@@ -41,7 +41,7 @@ plausible-looking wrong answer, which costs more to unwind than the tier saved.
 the same way whether it already existed or was just created for work described in
 chat: read the board's Size field if the issue has one, or estimate it the same way
 yourself if it doesn't and say that's what you're doing. `WORKFLOW.md` already rules
-out faking Priority/Size with labels when there's no board — the same rule applies
+out faking Priority/Size with labels when there's no board; the same rule applies
 here: an estimate lives in the reply, never in a GitHub field the board doesn't have.
 
 | Size | Suggested minimum |
@@ -51,39 +51,39 @@ here: an estimate lives in the reply, never in a GitHub field the board doesn't 
 | `L` / `XL` | The most capable tier available, high effort. |
 
 State the recommendation in capability terms, never as a specific product or model
-name — the same rule that governs "compact or start fresh" above governs this. Then
+name; the same rule that governs "compact or start fresh" above governs this. Then
 ask: continue on the current tier, or switch?
 
-**If switching**, don't carry a long conversation across the switch — compact the
+**If switching**, don't carry a long conversation across the switch; compact the
 session's context first, or start a fresh session on the target tier and hand it the
 GitHub issue number. A fresh session can re-derive what it needs from the issue; a
 long conversation dragged across a tier change usually can't be trusted to have
 carried the right parts of itself along.
 
-This table is a starting point, not a gate — nothing mechanically enforces it, the
+This table is a starting point, not a gate; nothing mechanically enforces it, the
 same way nothing enforces the rest of this file.
 
 ## Checkpointing before the end
 
 A deliberate close-out assumes the session gets to choose when it ends. It often
-doesn't — a session can run out of context, get killed, or lose its connection
+doesn't; a session can run out of context, get killed, or lose its connection
 mid-task, with no chance to ever reach "a real stopping point." If the only write to
 `{{ memoryFile }}` happens there, an interrupted session leaves nothing behind, and
 the next one starts cold with no idea what was mid-flight.
 
 So memory isn't only a close-out artifact. Overwrite `{{ memoryFile }}` at natural
-checkpoints during the session too — a sub-task finishing, before a long or risky
-step, any time the state worth resuming from changes — with wherever things actually
+checkpoints during the session too; a sub-task finishing, before a long or risky
+step, any time the state worth resuming from changes; with wherever things actually
 stand. It doesn't need the Done/Planned/Memory-handoff structure below; a rough
 current-state note is the point, not a polished one.
 
 ## Ending a session
 
-At a real stopping point — not after every message:
+At a real stopping point; not after every message:
 
-- **Done this session** — brief, complete bullets.
-- **Planned for next session** — brief, complete bullets.
-- **Memory handoff** — enough state that the next session can pick up cold, written
+- **Done this session**; brief, complete bullets.
+- **Planned for next session**; brief, complete bullets.
+- **Memory handoff**; enough state that the next session can pick up cold, written
   to **`{{ memoryFile }}`** and nowhere else.
 
 Push everything, update the issue and PR, leave the working tree clean, before
@@ -94,19 +94,19 @@ signing off. This is a handoff, not a pause.
 Two different things get updated at the end of a session, and they don't belong in
 the same place:
 
-- **Issue and PR *fields*** — status, labels, milestone, assignee, links — are real
+- **Issue and PR *fields***; status, labels, milestone, assignee, links; are real
   project data. They keep being updated on GitHub, exactly as `WORKFLOW.md` describes.
-- **An agent's running account of its own sessions** — what it tried, what it
-  learned, where it stopped — is not project data. It goes in `{{ memoryFile }}`,
+- **An agent's running account of its own sessions**; what it tried, what it
+  learned, where it stopped; is not project data. It goes in `{{ memoryFile }}`,
   never to an issue comment, a PR comment, or a board note.
 
 GitHub stays exactly as readable to a human as it would be if no agent had ever
-touched this repo. This is not a preference a capable agent gets to override — there
+touched this repo. This is not a preference a capable agent gets to override; there
 is no GitHub-comment option, for any target, regardless of what it's able to do.
 
 ## What isn't checkable from inside a session
 
 Nothing in this repo mechanically verifies that a reply actually ended with the
-status block above — there's no test that can observe a live conversation. The
+status block above; there's no test that can observe a live conversation. The
 closest thing to a gate is the discipline of following this file itself, every reply,
 including the one that just generated it.
