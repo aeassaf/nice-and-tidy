@@ -29,7 +29,7 @@ const endsWithNewline = (text) => text === '' || normalise(text).endsWith('\n')
 
 /**
  * Returns a unified diff, or an empty string when the two sides are identical after
- * line-ending normalisation — the same normalisation the provenance hash uses, so
+ * line-ending normalisation; the same normalisation the provenance hash uses, so
  * "no diff to show" and "hash matches" can never disagree.
  */
 export function unifiedDiff(before, after, { fromLabel = 'on disk', toLabel = 'would write' } = {}) {
@@ -50,7 +50,7 @@ export function unifiedDiff(before, after, { fromLabel = 'on disk', toLabel = 'w
   const changed = ops.flatMap((op, index) => (op.type === ' ' ? [] : [index]))
 
   // Same lines, different newline termination. The hash sees a difference here, so
-  // the file gets reported as a conflict — and a conflict that renders an empty diff
+  // the file gets reported as a conflict; and a conflict that renders an empty diff
   // is the one thing this must never do.
   if (changed.length === 0) return newlineOnlyDiff(a, before, after, fromLabel, toLabel)
 

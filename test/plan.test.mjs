@@ -213,7 +213,7 @@ test('appending keeps what was there and adds our content below it', async (t) =
 
 test('an appended file records the block, never the whole file', async (t) => {
   // The one that matters. Recording the whole file would make the next run read
-  // `update` — the file on disk matching what we last wrote — and replace somebody's
+  // `update`; the file on disk matching what we last wrote; and replace somebody's
   // own instructions with a bare copy of ours, without asking.
   const root = await tempDir(t)
   await writeFile(join(root, 'AGENTS.md'), MINE)
@@ -293,7 +293,7 @@ test('an update over an appended file does not grow it a line at a time', async 
 
 test('a file that did not opt in is never appended to', async (t) => {
   // Its generated content opens with frontmatter, which means nothing halfway down a
-  // file — and the markers are an HTML comment, which is a syntax error in a workflow.
+  // file; and the markers are an HTML comment, which is a syntax error in a workflow.
   const root = await tempDir(t)
   await writeFile(join(root, 'rules.mdc'), MINE)
   const items = await planFiles(root, [entry('rules.mdc', 'generated\n')], emptyManifest())

@@ -9,17 +9,17 @@ import { globalScope, localScope } from '../scope.js'
 import { compareVersions, packageVersion } from '../version.js'
 
 /**
- * `init` is already re-runnable — see its own docstring — so pulling in a newer
+ * `init` is already re-runnable; see its own docstring; so pulling in a newer
  * release is, mechanically, just running it again. `upgrade` wraps that with the two
  * things a plain re-run cannot do on its own:
  *
  *   - say which version wrote what's here and which version is about to replace it
  *   - notice that a newer release added config keys an existing config predates, and
- *     offer to add them — `nice-and-tidy.config.json` is user-owned and `init` never
+ *     offer to add them; `nice-and-tidy.config.json` is user-owned and `init` never
  *     touches it once it exists, so nothing else will ever do this
  *
- * Everything else — the file plan, the conflict prompts, `--force`/`--keep-existing`
- * — is `init`'s, unchanged. This function delegates to it rather than re-implement
+ * Everything else; the file plan, the conflict prompts, `--force`/`--keep-existing`
+ *; is `init`'s, unchanged. This function delegates to it rather than re-implement
  * any of it.
  */
 export async function upgrade(options) {
@@ -51,7 +51,7 @@ export async function upgrade(options) {
   }
 
   if (!hasManifest && rawConfigText === null) {
-    err(`Nothing installed at ${scope.label} — run \`nice-and-tidy init\` first.\n`)
+    err(`Nothing installed at ${scope.label}; run \`nice-and-tidy init\` first.\n`)
     return EXIT_USAGE
   }
 
@@ -120,7 +120,7 @@ const BLOCKED = 'blocked'
 
 /**
  * Adds config keys a newer release's `defaultConfig()` carries that the file on disk
- * predates — never removes or changes a key already present. `readConfig` already
+ * predates; never removes or changes a key already present. `readConfig` already
  * computes exactly this shape (raw file merged over current defaults, including
  * nested `board`/`protocol` defaults); the diff against the raw file is entirely
  * "what's new," so nothing here needs to know which keys are actually new.
@@ -144,7 +144,7 @@ async function backfillConfig({
     existing = await readConfig(configPath)
   } catch (error) {
     // A config that fails to parse or validate is `init`'s error to report, in the
-    // one place that already does so consistently — not backfill's to duplicate.
+    // one place that already does so consistently; not backfill's to duplicate.
     if (error instanceof ConfigError) return SKIPPED
     throw error
   }
@@ -165,11 +165,11 @@ async function backfillConfig({
 
   // `--append` is an answer about instruction files, and it has no meaning here: a
   // config is JSON, with nowhere to put a block. Treating it as "leave it alone" is
-  // what keeps `upgrade --append` usable without a terminal — the alternative is
+  // what keeps `upgrade --append` usable without a terminal; the alternative is
   // blocking the whole run on a question this flag was never about. `--force` is
   // still the way to take the new keys.
   if (append) {
-    out(`\n  left ${CONFIG_FILENAME} alone — --append has nothing to add to a config file.\n`)
+    out(`\n  left ${CONFIG_FILENAME} alone; --append has nothing to add to a config file.\n`)
     return SKIPPED
   }
 
@@ -183,7 +183,7 @@ async function backfillConfig({
     out(`\n  ${bold(CONFIG_FILENAME)}\n`)
     const answer = await prompter.ask()
     if (answer === 'abort') {
-      out(`\n  aborted — nothing was written.\n`)
+      out(`\n  aborted; nothing was written.\n`)
       return BLOCKED
     }
     if (answer === 'overwrite') {

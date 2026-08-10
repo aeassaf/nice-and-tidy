@@ -1,6 +1,6 @@
 ---
 name: nice-and-tidy
-description: Issue-first Git workflow and session protocol — create the issue before the branch, name branches and commits to convention, fill every issue/PR field, keep the board honest, reply concisely with a status block, and hand off to the next session through a committed markdown file. Use when starting work on a feature, bug or change; when opening a branch, commit or pull request; when updating issue or board state; or when ending a working session.
+description: Issue-first Git workflow and session protocol; create the issue before the branch, name branches and commits to convention, fill every issue/PR field, keep the board honest, reply concisely with a status block, and hand off to the next session through a committed markdown file. Use when starting work on a feature, bug or change; when opening a branch, commit or pull request; when updating issue or board state; or when ending a working session.
 ---
 
 # nice-and-tidy
@@ -8,15 +8,15 @@ description: Issue-first Git workflow and session protocol — create the issue 
 ## Precedence
 
 If the repository has an `AGENTS.md` at its root, **that file wins.** Read it first
-and follow it. This skill adds execution detail — how to actually carry the rules
-out — and fills the gaps when a repository has no `AGENTS.md` of its own.
+and follow it. This skill adds execution detail; how to actually carry the rules
+out; and fills the gaps when a repository has no `AGENTS.md` of its own.
 
 ## The short form
 
 1. An issue exists before code does. One issue per session.
 2. Branch: `<type>/<issue-number>-<kebab-case-slug>`, cut from `{{ baseBranch }}`,
    merged back into `{{ baseBranch }}`. Never push to `{{ productionBranch }}`.
-3. Commit: `<type>(<scope>): <subject>` — imperative, lowercase, no trailing period.
+3. Commit: `<type>(<scope>): <subject>`; imperative, lowercase, no trailing period.
    Types: `feat fix docs style refactor perf test build ci chore dependencies revert`.
    **Not enforced by anything.** Convention, and say so rather than implying a gate.
 4. Every issue and PR has its fields filled: labels, milestone, assignee, board
@@ -39,7 +39,7 @@ git checkout -b <type>/<issue>-<slug> {{ baseBranch }}
 gh pr create --base {{ baseBranch }} --body-file <file> --assignee {{ assignee }}
 ```
 
-Pass bodies through `--body-file`, not inline strings — an inline body with a
+Pass bodies through `--body-file`, not inline strings; an inline body with a
 backtick or a `$` in it becomes a shell expansion.
 
 **Board fields must have their IDs re-queried every time.** A field ID or option ID
@@ -65,7 +65,7 @@ write the handoff to **`{{ memoryFile }}`**:
 
 - What was finished this session.
 - What is planned next.
-- Enough state that a session starting cold — no chat history, no context — can
+- Enough state that a session starting cold; no chat history, no context; can
   continue from the file alone.
 
 **The handoff goes in that file and nowhere else.** Not an issue comment, not a PR

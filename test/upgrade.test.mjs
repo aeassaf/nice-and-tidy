@@ -1,5 +1,5 @@
 /**
- * `upgrade`, through the real binary — `init` is already tested end to end in
+ * `upgrade`, through the real binary; `init` is already tested end to end in
  * cli.test.mjs, so these only cover what `upgrade` adds on top of it: the version
  * banner, the downgrade guard, and backfilling config keys a file predates.
  */
@@ -195,7 +195,7 @@ test('an interactive run answers both the backfill question and a later file con
   const output = new PassThrough()
 
   // Wait for readline's own prompt text to actually appear on `output` before
-  // answering, rather than a fixed delay — the two questions are separated by real
+  // answering, rather than a fixed delay; the two questions are separated by real
   // file I/O (readConfig, planFiles), so a tick count would be timing-dependent.
   let promptCount = 0
   let onPrompt = null
@@ -215,7 +215,7 @@ test('an interactive run answers both the backfill question and a later file con
 
   // Two separate prompts are expected: the config backfill, then the AGENTS.md
   // conflict. `upgrade` shares one prompter across both rather than opening a second
-  // readline interface on the same input stream mid-run — see resolveConflicts.js's
+  // readline interface on the same input stream mid-run; see resolveConflicts.js's
   // note on why a second one can lose the answer to whatever asked first.
   await nthPrompt(1)
   input.write('y\n')
@@ -229,7 +229,7 @@ test('an interactive run answers both the backfill question and a later file con
   assert.doesNotMatch(
     await readFile(agentsPath, 'utf8'),
     /mine/,
-    'the conflict answer was not applied — a second prompter silently swallowed it',
+    'the conflict answer was not applied; a second prompter silently swallowed it',
   )
 })
 

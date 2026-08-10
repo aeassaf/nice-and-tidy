@@ -52,7 +52,7 @@ test('an unknown target is rejected and the known ones are named', () => {
   assert.match(message, /agents-md/)
 })
 
-test('dropping agents-md is rejected — every other target points at it', () => {
+test('dropping agents-md is rejected; every other target points at it', () => {
   const errors = errorsFor({ targets: ['claude', 'cursor'] })
   assert.equal(errors.length, 1)
   assert.match(errors[0], /must include "agents-md"/)
@@ -125,7 +125,7 @@ test('a partial config is filled in from the defaults', async (t) => {
 
 // --- view model ---------------------------------------------------------------
 
-// Phase 1's invariant was "strings all the way down" — nothing else was renderable.
+// Phase 1's invariant was "strings all the way down"; nothing else was renderable.
 // Phase 2 adds `{{#if flag}}`, which needs booleans, so the invariant narrows to:
 // every key is a string (for `{{ }}`) or a named conditional flag (for `{{#if }}`),
 // never anything else a template author could reach for by accident.
@@ -136,7 +136,7 @@ test('the view model is strings, except for the named conditional flags', () => 
     if (CONDITIONAL_FLAGS.includes(key)) {
       assert.equal(typeof value, 'boolean', `${key} is a conditional flag and must be a boolean`)
     } else {
-      assert.equal(typeof value, 'string', `${key} must be a string — templates cannot render anything else`)
+      assert.equal(typeof value, 'string', `${key} must be a string; templates cannot render anything else`)
     }
   }
 })

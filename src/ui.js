@@ -59,7 +59,7 @@ export function printDiff(item, write = (line) => process.stdout.write(line)) {
  * answer that cannot destroy somebody's work is the one allowed to happen by accident.
  *
  * Append is offered per question rather than always, because not every caller has
- * anywhere to put it — a JSON config cannot be appended to, and a deprecated
+ * anywhere to put it; a JSON config cannot be appended to, and a deprecated
  * convention file has no block to manage. An option that silently does nothing is
  * worse than one that isn't offered.
  *

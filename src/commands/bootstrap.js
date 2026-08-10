@@ -15,13 +15,12 @@ export const EXIT_NOT_READY = 3
 
 /**
  * The one-time GitHub-side setup: the PR template, its description gate and the
- * workflow that runs it, land through the same plan/manifest pipeline `init` uses —
- * one provenance record for everything this tool writes, a hand-edited template
+ * workflow that runs it, land through the same plan/manifest pipeline `init` uses; * one provenance record for everything this tool writes, a hand-edited template
  * diffed and asked about exactly like a hand-edited `AGENTS.md`. Labels and
  * milestones are separate GitHub API calls with no local file to diff, so they get
  * their own "skip what already exists" logic instead.
  *
- * What this does not do: the Project board — GitHub exposes no API for cloning a
+ * What this does not do: the Project board; GitHub exposes no API for cloning a
  * built-in project template, so it cannot be scripted without hand-written GraphQL;
  * `docs/WORKFLOW.md` documents the manual steps instead. Nor does it flip the
  * default branch, which it only ever prints for a human to run.
@@ -51,7 +50,7 @@ export async function bootstrap(options) {
     return EXIT_USAGE
   }
   if (!existing) {
-    err(`No ${CONFIG_FILENAME} here yet. Run \`nice-and-tidy init\` first — bootstrap reads its config.\n`)
+    err(`No ${CONFIG_FILENAME} here yet. Run \`nice-and-tidy init\` first; bootstrap reads its config.\n`)
     return EXIT_USAGE
   }
   const { config } = existing
@@ -59,7 +58,7 @@ export async function bootstrap(options) {
   if (!config.repo) {
     err(
       `"repo" is not set in ${CONFIG_FILENAME}. bootstrap needs an "owner/name" to create labels, ` +
-        `milestones and the PR template against — set it and run init again first.\n`,
+        `milestones and the PR template against; set it and run init again first.\n`,
     )
     return EXIT_USAGE
   }
@@ -68,7 +67,7 @@ export async function bootstrap(options) {
   if (!ready.ok) {
     err(
       `${yellow('gh is not ready.')} ${ready.reason}\n\n` +
-        `bootstrap needs \`gh\` installed and logged in (\`gh auth login\`) — nothing was created,\n` +
+        `bootstrap needs \`gh\` installed and logged in (\`gh auth login\`); nothing was created,\n` +
         `changed or contacted.\n`,
     )
     return EXIT_NOT_READY
@@ -83,7 +82,7 @@ export async function bootstrap(options) {
   const items = await planFiles(scope.root, entries, manifest)
 
   for (const item of items) {
-    const suffix = item.action === KEPT ? dim('  (yours — never rewritten)') : ''
+    const suffix = item.action === KEPT ? dim('  (yours; never rewritten)') : ''
     out(`  ${ACTION_LABEL[item.action]}  ${item.path}${suffix}\n`)
   }
 
@@ -138,7 +137,7 @@ export async function bootstrap(options) {
 
   if (config.gitflow) {
     out(
-      `\n${bold('Not run — a repo setting, a human decision:')}\n` +
+      `\n${bold('Not run; a repo setting, a human decision:')}\n` +
         `  ${dim(`gh repo edit ${config.repo} --default-branch develop`)}\n` +
         `  Needed for \`Closes #N\` to auto-close once everyday PRs land on develop instead of main.\n` +
         `  See docs/BRANCHING.md.\n`,
@@ -152,12 +151,12 @@ export async function bootstrap(options) {
 /**
  * Shared shape for labels and milestones: fetch what already exists, create only
  * what's missing from config, report both. Neither GitHub API errors on a duplicate
- * cleanly enough to rely on — "ask first" is what makes this idempotent, the same
+ * cleanly enough to rely on; "ask first" is what makes this idempotent, the same
  * principle the manifest applies to files.
  */
 async function syncNamed({ wanted, fetchExisting, create, noun, dryRun, out }) {
   if (wanted.length === 0) {
-    out(`  ${dim(`none configured — nothing to do.`)}\n`)
+    out(`  ${dim(`none configured; nothing to do.`)}\n`)
     return
   }
 

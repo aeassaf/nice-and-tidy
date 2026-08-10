@@ -4,7 +4,7 @@ import { promisify } from 'node:util'
 const run = promisify(execFile)
 
 /**
- * Local `git` only. Phase 1 makes no network calls of any kind — reading a remote URL
+ * Local `git` only. Phase 1 makes no network calls of any kind; reading a remote URL
  * out of `.git/config` is how `init` can fill in `repo` and `defaultAssignee` without
  * asking, and without touching GitHub.
  */

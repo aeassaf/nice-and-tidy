@@ -9,11 +9,11 @@ test('identical content produces no diff at all', () => {
   assert.equal(unifiedDiff(lines('a', 'b'), lines('a', 'b')), '')
 })
 
-test('a line-ending-only change is not a diff — it matches what the hash ignores', () => {
+test('a line-ending-only change is not a diff; it matches what the hash ignores', () => {
   assert.equal(unifiedDiff('a\r\nb\r\n', 'a\nb\n'), '')
 })
 
-/** Body lines only — the `---`/`+++` headers are not changes. */
+/** Body lines only; the `---`/`+++` headers are not changes. */
 const changedLines = (diff) => diff.split('\n').filter((line) => /^[-+][^-+]/.test(line))
 
 test('a pure insertion shows one addition and no removals', () => {

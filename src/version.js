@@ -1,8 +1,7 @@
 import { readFile } from 'node:fs/promises'
 
 /**
- * The running CLI's own version, read from `package.json` rather than hard-coded —
- * one number to bump at release time, not two.
+ * The running CLI's own version, read from `package.json` rather than hard-coded; * one number to bump at release time, not two.
  */
 let cached
 export async function packageVersion() {
@@ -14,10 +13,10 @@ const SEMVER = /^(\d+)\.(\d+)\.(\d+)/
 
 /**
  * Compares two `major.minor.patch[-...]` strings. Anything after the patch number
- * (a prerelease or build tag) is ignored — this only needs to answer "did the repo
+ * (a prerelease or build tag) is ignored; this only needs to answer "did the repo
  * move backwards," not implement full semver precedence.
  *
- * Returns null, not a thrown error, for a string that does not parse as semver — a
+ * Returns null, not a thrown error, for a string that does not parse as semver; a
  * manifest written by some future version format is a reason to skip the comparison,
  * not to crash the upgrade that would otherwise fix it.
  */

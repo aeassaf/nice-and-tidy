@@ -23,7 +23,7 @@ const OPTIONS = {
   version: { type: 'boolean', short: 'v', default: false },
 }
 
-const USAGE = `nice-and-tidy — an issue-first Git workflow and session protocol, installed into any repo.
+const USAGE = `nice-and-tidy; an issue-first Git workflow and session protocol, installed into any repo.
 
 Usage
   nice-and-tidy init [options]        write the instruction files and the config
@@ -52,8 +52,7 @@ Options
   -v, --version       print the version
 
 \`bootstrap\` needs \`nice-and-tidy init\` run first (it reads the config init writes)
-and \`gh\` installed and logged in. It creates labels and milestones from config —
-skipping ones that already exist — and prints, but never runs, the command to flip
+and \`gh\` installed and logged in. It creates labels and milestones from config; skipping ones that already exist; and prints, but never runs, the command to flip
 the repository's default branch.
 
 \`upgrade\` needs \`nice-and-tidy init\` run first (it reads the manifest init writes)
@@ -101,15 +100,15 @@ async function main(argv) {
   // Three answers to the same question, and each pair is a different contradiction, so
   // each pair says which one it is rather than sharing one vague message.
   if (values.force && values['keep-existing']) {
-    process.stderr.write('Pass --force or --keep-existing, not both — they are opposite answers.\n')
+    process.stderr.write('Pass --force or --keep-existing, not both; they are opposite answers.\n')
     return EXIT_USAGE
   }
   if (values.force && values.append) {
-    process.stderr.write('Pass --force or --append, not both — one replaces what is there, the other keeps it.\n')
+    process.stderr.write('Pass --force or --append, not both; one replaces what is there, the other keeps it.\n')
     return EXIT_USAGE
   }
   if (values['keep-existing'] && values.append) {
-    process.stderr.write('Pass --keep-existing or --append, not both — one writes nothing, the other writes a block.\n')
+    process.stderr.write('Pass --keep-existing or --append, not both; one writes nothing, the other writes a block.\n')
     return EXIT_USAGE
   }
 

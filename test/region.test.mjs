@@ -4,7 +4,7 @@
  * Everything append does downstream rests on one property: what `findRegion` reads
  * back out is exactly what `appendRegion` put in. If that round trip is lossy, the
  * interior hash never matches on a re-run and the whole feature degrades into asking
- * about the same file forever — or, worse, stops being able to tell "we wrote this"
+ * about the same file forever; or, worse, stops being able to tell "we wrote this"
  * from "somebody edited it."
  *
  * The refusals matter as much as the round trip. A half-written or duplicated fence

@@ -7,12 +7,12 @@ import { render } from './template.js'
 const TEMPLATE_ROOT = new URL('../templates/', import.meta.url)
 
 /**
- * `bootstrap`'s file-writing half — the PR template, its description gate and the
+ * `bootstrap`'s file-writing half; the PR template, its description gate and the
  * workflow that runs it. Kept in its own list, distinct from `payload.js`'s
  * `LOCAL_FILES`, because these are GitHub-side setup and `init` never touches
- * GitHub — see `payload.js`'s own note on the same boundary.
+ * GitHub; see `payload.js`'s own note on the same boundary.
  *
- * `check-pr-description.mjs` and its test are copied verbatim — no `{{ }}` in
+ * `check-pr-description.mjs` and its test are copied verbatim; no `{{ }}` in
  * either, and `render()` on a file with no placeholders is a no-op, so running them
  * through the same path as the rest costs nothing and keeps this list uniform.
  */

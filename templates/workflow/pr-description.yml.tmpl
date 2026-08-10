@@ -1,7 +1,7 @@
 name: PR description
 
 # Separate from ci.yml on purpose. This needs the `edited` event so that fixing a
-# description re-runs the check — and `edited` on ci.yml would re-run typecheck, both
+# description re-runs the check; and `edited` on ci.yml would re-run typecheck, both
 # gate suites and two production builds every time someone touches a sentence.
 on:
   pull_request:
