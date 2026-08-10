@@ -14,6 +14,7 @@ import { test } from 'node:test'
 import { hashContent } from '../src/hash.js'
 import { emptyManifest, readManifest } from '../src/manifest.js'
 import { ADOPT, CONFLICT, CREATE, GENERATED, KEPT, UNCHANGED, UPDATE, applyPlan, planFiles } from '../src/plan.js'
+import { packageVersion } from '../src/version.js'
 import { tempDir } from './helpers.mjs'
 
 const entry = (path, contents, ownership = GENERATED) => ({ path, contents, ownership })
@@ -170,7 +171,7 @@ test('dry run writes neither the file nor the manifest', async (t) => {
 test('a run with nothing to do does not rewrite the manifest', async (t) => {
   const root = await tempDir(t)
   await writeFile(join(root, 'AGENTS.md'), 'hello\n')
-  const manifest = manifestWith({ 'AGENTS.md': hashContent('hello\n') })
+  const manifest = { ...manifestWith({ 'AGENTS.md': hashContent('hello\n') }), generatorVersion: await packageVersion() }
   const items = await planFiles(root, [entry('AGENTS.md', 'hello\n')], manifest)
 
   const applied = await applyPlan(items, { manifest, manifestPath: join(root, 'm.json') })

@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path'
 
 import { hashContent } from './hash.js'
 import { serialiseManifest, writeManifest } from './manifest.js'
+import { packageVersion } from './version.js'
 
 /**
  * Every file this tool writes lands in exactly one of these states. The whole point
@@ -67,8 +68,8 @@ export const willWrite = (item) => item.action === CREATE || item.action === UPD
  * `resolutions` maps a path to `overwrite` or `skip`. A conflict with no resolution
  * is skipped — the default has to be the one that cannot destroy work.
  */
-export async function applyPlan(items, { manifest, manifestPath, resolutions = new Map(), dryRun = false }) {
-  const next = { ...manifest, files: { ...manifest.files } }
+export async function applyPlan(items, { manifest, manifestPath, resolutions = new Map(), dryRun = false, generatorVersion }) {
+  const next = { ...manifest, files: { ...manifest.files }, generatorVersion: generatorVersion ?? (await packageVersion()) }
   const written = []
   const skipped = []
 

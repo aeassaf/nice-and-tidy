@@ -1,6 +1,6 @@
 {
   "name": "nice-and-tidy",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Install an issue-first Git workflow and an AI session protocol into any repo, for any coding agent.",
   "license": "MIT",
   "author": "Antoine Assaf",

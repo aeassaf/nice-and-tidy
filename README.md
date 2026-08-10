@@ -182,6 +182,7 @@ A skipped conflict stays a conflict. Nothing silently adopts a file you edited.
 ```bash
 nice-and-tidy init          # write the instruction files and the config
 nice-and-tidy diff          # show what init would change, write nothing
+nice-and-tidy upgrade       # pull in a newer release of this tool, same repo
 nice-and-tidy bootstrap     # GitHub-side setup: PR template, gate, CI, labels, milestones
 nice-and-tidy clean         # find deprecated per-tool convention files that predate AGENTS.md
 ```
@@ -196,6 +197,25 @@ nice-and-tidy clean         # find deprecated per-tool convention files that pre
 
 Exit codes: `0` fine, `1` unresolved conflicts, `2` bad usage or bad config, `3`
 `bootstrap` only — `gh` is missing or not logged in, and nothing was contacted.
+
+### `upgrade`
+
+```bash
+npx nice-and-tidy@latest upgrade
+```
+
+Re-running `init` after a newer release is already safe on its own — see above. `upgrade`
+adds the two things a plain re-run can't do:
+
+- prints which version last touched this repo and which version is about to, from
+  `generatorVersion` in the manifest, and refuses to run an older release over a newer
+  install unless you pass `--force`
+- notices when a newer release's config has keys yours predates and offers to add
+  them, diffed like any other conflict — `nice-and-tidy.config.json` is yours once it
+  exists, so `init` alone will never touch it, even to add a key you don't have yet
+
+Everything else — the file plan, `--keep-existing`, `--force`, the exit codes — is
+`init`'s, unchanged.
 
 ### `bootstrap`
 

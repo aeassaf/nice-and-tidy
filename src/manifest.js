@@ -22,7 +22,7 @@ import { dirname } from 'node:path'
 export const MANIFEST_VERSION = 1
 
 export function emptyManifest() {
-  return { manifestVersion: MANIFEST_VERSION, files: {} }
+  return { manifestVersion: MANIFEST_VERSION, generatorVersion: null, files: {} }
 }
 
 export async function readManifest(manifestPath) {
@@ -47,11 +47,15 @@ export async function readManifest(manifestPath) {
     return emptyManifest()
   }
 
+  // Written by a version of this tool that predates `generatorVersion`, or by
+  // something else entirely — either way, "unknown" is the honest answer, not "".
+  const generatorVersion = typeof parsed.generatorVersion === 'string' ? parsed.generatorVersion : null
+
   const files = {}
   for (const [path, hash] of Object.entries(parsed.files)) {
     if (typeof hash === 'string' && /^[0-9a-f]{64}$/.test(hash)) files[path] = hash
   }
-  return { manifestVersion: MANIFEST_VERSION, files }
+  return { manifestVersion: MANIFEST_VERSION, generatorVersion, files }
 }
 
 /** Keys are sorted so a re-run never produces a reordered, noisy git diff. */
@@ -59,7 +63,11 @@ export function serialiseManifest(manifest) {
   const files = Object.fromEntries(
     Object.entries(manifest.files).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
   )
-  return `${JSON.stringify({ manifestVersion: MANIFEST_VERSION, files }, null, 2)}\n`
+  return `${JSON.stringify(
+    { manifestVersion: MANIFEST_VERSION, generatorVersion: manifest.generatorVersion ?? null, files },
+    null,
+    2,
+  )}\n`
 }
 
 export async function writeManifest(manifestPath, manifest) {

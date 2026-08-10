@@ -30,6 +30,7 @@ export async function init(options) {
     err = (text) => process.stderr.write(text),
     input = process.stdin,
     output = process.stdout,
+    prompter,
   } = options ?? {}
 
   const scope = isGlobal ? globalScope() : localScope((await findRepoRoot(cwd)) ?? cwd)
@@ -76,6 +77,7 @@ export async function init(options) {
     output,
     out,
     err,
+    prompter,
   })
   if (outcome === ABORTED || outcome === NO_TERMINAL) return EXIT_UNRESOLVED
 
@@ -140,7 +142,14 @@ async function freshConfig(scope, cwd, gitflow) {
 }
 
 function summarise(items, result, { dryRun, idle }) {
-  if (idle) return dim('  Already up to date. Nothing to write.')
+  if (idle) {
+    // Every file is untouched, but the manifest still gets rewritten when the
+    // running version differs from the one it last recorded — that is real, not
+    // nothing, and a repo that commits the manifest would otherwise see a dirty
+    // file after a run that just claimed there was nothing to write.
+    const versionOnly = !dryRun && result.manifestChanged
+    return dim(`  Already up to date. Nothing to write.${versionOnly ? ' (recorded the version this ran with.)' : ''}`)
+  }
 
   const counted = (action) => items.filter((item) => item.action === action).length
   const parts = []

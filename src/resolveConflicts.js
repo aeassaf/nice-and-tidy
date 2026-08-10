@@ -16,7 +16,10 @@ export const RESOLVED = 'resolved'
  * "a" — nothing should be written), or `NO_TERMINAL` (conflicts exist, nothing was
  * there to ask, `--force`/`--keep-existing` are the way out).
  */
-export async function resolveConflicts(items, { force, keepExisting, dryRun, interactive, input, output, out, err }) {
+export async function resolveConflicts(
+  items,
+  { force, keepExisting, dryRun, interactive, input, output, out, err, prompter: shared },
+) {
   const conflicts = items.filter(isConflict)
 
   if (conflicts.length > 0) {
@@ -48,7 +51,11 @@ export async function resolveConflicts(items, { force, keepExisting, dryRun, int
   }
 
   if (interactive) {
-    const prompter = createPrompter({ input, output })
+    // A caller that already opened a prompter for its own question (`upgrade`'s
+    // config backfill) passes it in so this reuses it instead of opening a second
+    // readline interface on the same stdin — see createPrompter's own note on why a
+    // second one silently loses every answer after the first.
+    const prompter = shared ?? createPrompter({ input, output })
     try {
       for (const item of conflicts) {
         out(`\n  ${bold(item.path)}\n`)
@@ -60,7 +67,7 @@ export async function resolveConflicts(items, { force, keepExisting, dryRun, int
         resolutions.set(item.path, answer === 'overwrite' ? 'overwrite' : 'skip')
       }
     } finally {
-      prompter.close()
+      if (!shared) prompter.close()
     }
     return { outcome: RESOLVED, resolutions }
   }
