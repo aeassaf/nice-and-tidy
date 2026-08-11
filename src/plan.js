@@ -1,9 +1,9 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 
 import { hashContent } from './hash.js'
 import { serialiseManifest, writeManifest } from './manifest.js'
-import { appendRegion, findRegion, replaceRegion } from './region.js'
+import { appendRegion, findRegion, replaceRegion, stripRegion } from './region.js'
 import { packageVersion } from './version.js'
 
 /**
@@ -17,6 +17,18 @@ export const UNCHANGED = 'unchanged'
 export const ADOPT = 'adopt'
 export const KEPT = 'kept'
 export const CONFLICT = 'conflict'
+
+/**
+ * And three more for the other direction — a file whose target is no longer selected.
+ *
+ * `remove` is the only one that touches the disk, and the manifest is what earns it
+ * that: we wrote this file, and what is there is byte for byte what we wrote.
+ * `orphaned` is everything else, reported and never touched. `forget` is a manifest
+ * entry with nothing behind it any more.
+ */
+export const REMOVE = 'remove'
+export const ORPHANED = 'orphaned'
+export const FORGET = 'forget'
 
 /** Ownership decides whether a second run is allowed to touch an existing file. */
 export const GENERATED = 'generated'
@@ -101,7 +113,63 @@ function planRegion(item, { region, desiredHash, recorded }) {
   return { ...base, action: UPDATE, hash: desiredHash }
 }
 
+/**
+ * The other half of the plan: what to do about a file whose target has been dropped.
+ *
+ * The rule is the manifest's, applied in the one direction it was always going to be
+ * needed in. A generated file that is byte for byte what we last wrote is ours to take
+ * away again. Anything else — never recorded, or recorded and then edited — is
+ * somebody's work, and this reports it for a human to delete rather than guessing.
+ * Getting that backwards deletes something unrecoverable, which is why the safe branch
+ * is the fallthrough and every unsafe one returns early.
+ *
+ * Candidates come from `payload.js#orphanedFiles`, never from "the manifest minus
+ * today's payload" — see the note there.
+ */
+export async function planRemovals(root, candidates, manifest) {
+  const items = await Promise.all(candidates.map((candidate) => planRemoval(root, candidate, manifest)))
+  return items.filter((item) => item !== null)
+}
+
+async function planRemoval(root, candidate, manifest) {
+  const absolute = join(root, candidate.path)
+  const recorded = manifest.files[candidate.path]
+
+  let actual = null
+  try {
+    actual = await readFile(absolute, 'utf8')
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+  }
+
+  const base = { ...candidate, absolute, actual }
+
+  // Nothing on disk. Nothing to report either — but a manifest entry left pointing at
+  // a path we no longer write would mark whatever somebody puts there next as ours.
+  if (actual === null) return recorded === undefined ? null : { ...base, action: FORGET }
+
+  if (recorded === undefined) return { ...base, action: ORPHANED, reason: 'untracked' }
+
+  // Only partly ours: our block inside a file somebody else wrote. Deleting the file
+  // would take their content with it, so the region is what goes. The manifest holds
+  // the hash of the region's interior for these, never of the whole file — comparing
+  // against the whole file here would read every appended file as hand-edited.
+  const region = candidate.appendable ? findRegion(actual) : null
+  if (region !== null) {
+    if (hashContent(region.body) !== recorded) return { ...base, action: ORPHANED, reason: 'region-edited' }
+    const stripped = stripRegion(actual)
+    return { ...base, action: REMOVE, strip: stripped === '' ? undefined : stripped }
+  }
+
+  if (hashContent(actual) !== recorded) return { ...base, action: ORPHANED, reason: 'edited' }
+
+  return { ...base, action: REMOVE }
+}
+
 export const isConflict = (item) => item.action === CONFLICT
+export const isOrphaned = (item) => item.action === ORPHANED
+/** A removal that keeps the file and takes only this tool's block out of it. */
+export const stripsRegion = (item) => item.action === REMOVE && item.strip !== undefined
 export const willWrite = (item) => item.action === CREATE || item.action === UPDATE
 
 /** A conflict this tool can answer by adding to the file rather than replacing it. */
@@ -115,11 +183,19 @@ const APPLIED = new Set(['overwrite', 'append'])
  * `resolutions` maps a path to `overwrite`, `append` or `skip`. A conflict with no
  * resolution is skipped — the default has to be the one that cannot destroy work, and
  * so is an `append` asked for on a file that has no way to accept one.
+ *
+ * `removals` is `planRemovals`'s output. Pass an empty list to write everything and
+ * take nothing away; the caller decides that, because "leave my files alone" is a
+ * flag, not a property of the plan.
  */
-export async function applyPlan(items, { manifest, manifestPath, resolutions = new Map(), dryRun = false, generatorVersion }) {
+export async function applyPlan(
+  items,
+  { manifest, manifestPath, resolutions = new Map(), removals = [], dryRun = false, generatorVersion },
+) {
   const next = { ...manifest, files: { ...manifest.files }, generatorVersion: generatorVersion ?? (await packageVersion()) }
   const written = []
   const skipped = []
+  const removed = []
 
   for (const item of items) {
     const asked = item.action === CONFLICT ? (resolutions.get(item.path) ?? 'skip') : null
@@ -156,8 +232,30 @@ export async function applyPlan(items, { manifest, manifestPath, resolutions = n
     next.files[item.path] = item.hash
   }
 
+  for (const item of removals) {
+    // Left exactly as it was, manifest entry included — for the same reason a skipped
+    // conflict keeps its own. Dropping the entry here would make the file untracked,
+    // and a later run that re-selects the target would overwrite it without asking.
+    if (item.action === ORPHANED) {
+      skipped.push(item)
+      continue
+    }
+
+    delete next.files[item.path]
+    if (item.action === FORGET) continue
+
+    if (!dryRun) {
+      if (item.strip !== undefined) await writeFile(item.absolute, item.strip, 'utf8')
+      // Empty parent directories are left behind on purpose. `.cursor/rules/` may hold
+      // rules this tool never wrote, and inferring that a directory is ours because we
+      // put one file in it is exactly the guess that loses somebody's work.
+      else await rm(item.absolute, { force: true })
+    }
+    removed.push(item)
+  }
+
   const manifestChanged = serialiseManifest(next) !== serialiseManifest(manifest)
   if (manifestChanged && !dryRun) await writeManifest(manifestPath, next)
 
-  return { manifest: next, written, skipped, manifestChanged }
+  return { manifest: next, written, skipped, removed, manifestChanged }
 }

@@ -2,6 +2,7 @@
 import { parseArgs } from 'node:util'
 
 import { bootstrap } from '../src/commands/bootstrap.js'
+import { AGENT_TARGETS, parseAgents } from '../src/config.js'
 import { clean } from '../src/commands/clean.js'
 import { EXIT_USAGE, init } from '../src/commands/init.js'
 import { upgrade } from '../src/commands/upgrade.js'
@@ -19,6 +20,7 @@ const OPTIONS = {
   // older runtime is worse than a flag that does not exist.
   gitflow: { type: 'boolean', default: false },
   'no-gitflow': { type: 'boolean', default: false },
+  agents: { type: 'string' },
   help: { type: 'boolean', short: 'h', default: false },
   version: { type: 'boolean', short: 'v', default: false },
 }
@@ -48,6 +50,12 @@ Options
                        content only works at the top of a file are left alone instead
       --gitflow       branch off develop            (only when creating the config)
       --no-gitflow    branch off main, trunk-based  (only when creating the config)
+      --agents        which agents to install for: a comma-separated list of
+                       ${AGENT_TARGETS.join(', ')}, or \`all\`, or \`none\`.
+                       AGENTS.md and docs/ are written either way — every agent target
+                       is a pointer to them, so there is no install without them.
+                       On \`init\`, only when creating the config; on \`upgrade\`, it
+                       changes an existing one after showing the diff and asking
   -h, --help          show this
   -v, --version       print the version
 
@@ -62,6 +70,10 @@ you pass \`--force\`.
 
 Re-running is safe. A file this tool wrote and nobody touched gets updated; a file
 somebody edited gets shown as a diff and left alone unless you say otherwise.
+
+Dropping an agent removes the files it had — but only the ones this tool wrote and
+nobody has touched since. Anything else is named and left where it is, for you to
+delete.
 `
 
 async function main(argv) {
@@ -113,12 +125,33 @@ async function main(argv) {
     return EXIT_USAGE
   }
 
+  // `--agents` is about which instruction files exist. `bootstrap` writes GitHub-side
+  // setup — the PR template, its gate, the CI workflow — and none of that depends on
+  // which agent you use; `clean` is about files this tool never wrote. Accepting the
+  // flag there and doing nothing with it would be the worse answer.
+  const AGENT_COMMANDS = new Set(['init', 'diff', 'upgrade'])
+  if (values.agents !== undefined && !AGENT_COMMANDS.has(command)) {
+    process.stderr.write(`--agents applies to ${[...AGENT_COMMANDS].join(', ')}, not ${command}.\n`)
+    return EXIT_USAGE
+  }
+
+  let agents
+  if (values.agents !== undefined) {
+    const parsed = parseAgents(values.agents)
+    if (parsed.error) {
+      process.stderr.write(`${parsed.error}\n`)
+      return EXIT_USAGE
+    }
+    agents = parsed.targets
+  }
+
   const shared = {
     global: values.global,
     force: values.force,
     keepExisting: values['keep-existing'],
     append: values.append,
     gitflow: values.gitflow ? true : values['no-gitflow'] ? false : undefined,
+    agents,
   }
 
   switch (command) {

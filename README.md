@@ -104,7 +104,7 @@ service to authenticate against, no daemon to keep running.
 
 ## Status
 
-`init`, `diff`, `upgrade`, `bootstrap` and `clean` all work. 197 tests, mostly negative — an
+`init`, `diff`, `upgrade`, `bootstrap` and `clean` all work. 250 tests, mostly negative — an
 engine whose job is "do not destroy the user's work" is only trustworthy if something
 proves it refuses to.
 
@@ -124,6 +124,10 @@ proves it refuses to.
 | `nice-and-tidy.config.json` | Yours, after the first write. Never rewritten. |
 | `docs/RESUME_HERE.md` (or wherever `protocol.memoryFile` points) | A starter scaffold, created once if nothing is there. Yours after that, same as the config — a real session's notes are never diffed or flagged as a conflict, whatever they say. |
 | `.nice-and-tidy/manifest.json` | Provenance. Commit it — see below. |
+
+Everything from `CLAUDE.md` down to the Cursor rule is optional. `--agents` picks
+which of them you get — see [Choosing your agents](#choosing-your-agents). `AGENTS.md`
+and the four files under `docs/` are not optional: every shim is a pointer to them.
 
 There's no Windsurf shim: Windsurf reads a root `AGENTS.md` natively, and its own
 docs describe `.windsurfrules` as the deprecated file that support replaced — shipping
@@ -161,6 +165,10 @@ flowchart TD
 
 `nice-and-tidy.config.json` and the memory file skip this decision tree entirely —
 they're yours from the first write (`kept`), never diffed, whatever they say.
+
+A file belonging to an agent you've since dropped runs the same test in reverse:
+byte-for-byte what we wrote, or it is named and left where it is. See
+[Choosing your agents](#choosing-your-agents).
 
 Comparing the file to what we'd write cannot distinguish "you edited this" from "your
 config changed" — both differ from what's on disk. Only a record of what was last
@@ -238,6 +246,7 @@ nice-and-tidy clean         # find deprecated per-tool convention files that pre
 | `--force` | Overwrite conflicts without asking; for `clean`, replace every flagged file with a pointer to `AGENTS.md`. |
 | `--append` | Keep conflicting files and add the generated content to the end of each, fenced by markers. Files whose content only works at the top of a file are left alone instead. |
 | `--gitflow` / `--no-gitflow` | Branch model. Only applies when creating the config. |
+| `--agents` | Which agents to install for: a comma-separated list, or `all`, or `none`. On `init`, only when creating the config; `upgrade --agents` changes an existing one. |
 
 Exit codes: `0` fine, `1` unresolved conflicts, `2` bad usage or bad config, `3`
 `bootstrap` only — `gh` is missing or not logged in, and nothing was contacted.
@@ -258,9 +267,58 @@ adds the two things a plain re-run can't do:
   them, diffed like any other conflict — `nice-and-tidy.config.json` is yours once it
   exists, so `init` alone will never touch it, even to add a key you don't have yet
 
+- changes `targets` when you pass `--agents`, which is the one thing that edits a key
+  you set rather than one you never had — so it shows the diff and asks first, exactly
+  like the backfill above, and needs `--force` where there's no terminal to ask on
+
 Everything else — the file plan, `--keep-existing`, `--force`, `--append`, the exit
 codes — is `init`'s, unchanged. `--append` has nothing to add to a JSON config, so on
 the backfill question it means "leave it alone"; `--force` is how you take the new keys.
+`--agents` with `--keep-existing` or `--append` is refused rather than ranked — one
+asks for the config to change and the other says leave everything as it is.
+
+### Choosing your agents
+
+Only using one agent? Install for one:
+
+```bash
+npx nice-and-tidy@latest init --agents claude
+```
+
+`claude`, `copilot`, `cursor`, or `all`, or `none` for `AGENTS.md` and its docs on
+their own. Run `init` in a terminal with nothing installed yet and it asks; Enter takes
+all of them, which is what it did before the question existed. A pipe, a CI job or a
+script that never passes the flag gets all of them too — the prompt is an offer, not a
+gate.
+
+The answer is written to `targets` in your config, so it is asked once and not again.
+
+**Changing your mind removes what the dropped agents had:**
+
+```bash
+npx nice-and-tidy@latest upgrade --agents claude
+```
+
+That shows you the one-line change to `targets`, asks, and then deletes the files those
+agents left behind — **but only the ones this tool wrote and nobody has touched since.**
+The manifest is what decides that, and everything else is refused:
+
+| What's there | What happens |
+|---|---|
+| Exactly what this tool wrote | Removed, and forgotten from the manifest. |
+| This tool's file, edited since | `orphaned` — named, left alone. Delete it yourself. |
+| A file this tool never wrote | `orphaned` — named, left alone. |
+| Your own file with a generated block appended | The block is removed. The rest of the file is untouched. |
+
+`diff` shows removals before any of it happens, and `--keep-existing` performs none of
+them. Empty parent directories are left behind on purpose: `.cursor/rules/` may hold
+rules this tool never wrote, and inferring that a directory is ours because we put one
+file in it is exactly the guess that loses somebody's work.
+
+One thing dropping an agent does *not* do: empty `.github/`. Only
+`copilot-instructions.md` is tied to a target. The PR template, the description gate
+and the CI workflow are `bootstrap`'s, and none of them depends on which agent you
+use.
 
 ### `bootstrap`
 
@@ -347,9 +405,11 @@ that.
 - `repo` and `defaultAssignee` are filled in from your `origin` remote on first run.
 - `gitflow: false` degrades the branch model to trunk-based: no `develop`, short-lived
   branches straight into `main`.
-- `targets` defaults to all of them. A shim is a few lines pointing at `AGENTS.md`;
-  the only reason to drop one is a tool that already reads `AGENTS.md` natively, where
-  the shim would be dead weight.
+- `targets` defaults to all of them, and `--agents` is how you set it without opening
+  the file — see [Choosing your agents](#choosing-your-agents). `agents-md` is not
+  optional and is rejected if missing: every other entry is a pointer to it. Two
+  reasons to drop a target — you don't use that agent, or it already reads `AGENTS.md`
+  natively and the shim is dead weight.
 - `protocol.memoryFile` is where session handoff is written. It must stay inside the
   repo and be markdown — both are validated.
 

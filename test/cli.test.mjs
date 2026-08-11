@@ -322,6 +322,9 @@ test('answering + at the prompt appends, and only the appendable file is offered
   const seen = []
   output.on('data', (chunk) => {
     const text = chunk.toString()
+    // A fresh install asks which agents first. Enter takes all of them, which is what
+    // this test needs and what a run with no answer has always installed.
+    if (/agents\?/.test(text)) return input.write('\n')
     if (!/overwrite it\?/.test(text)) return
     seen.push(text)
     // `+` for the shim, then Enter for the rule file, which was never offered append.
@@ -390,6 +393,267 @@ test('targets decides what gets installed', async (t) => {
   assert.equal(await exists(join(cwd, 'CLAUDE.md')), false)
   assert.equal(await exists(join(cwd, '.cursor/rules/nice-and-tidy.mdc')), false)
 })
+
+test('--agents picks what a fresh install writes', async (t) => {
+  const cwd = await tempDir(t)
+  const { code } = await cli(['init', '--agents', 'claude'], { cwd })
+
+  assert.equal(code, 0)
+  assert.ok(await exists(join(cwd, 'CLAUDE.md')))
+  assert.ok(await exists(join(cwd, 'AGENTS.md')), 'AGENTS.md is what the shims point at — never optional')
+  assert.equal(await exists(join(cwd, '.github/copilot-instructions.md')), false)
+  assert.equal(await exists(join(cwd, '.cursor/rules/nice-and-tidy.mdc')), false)
+
+  const { targets } = JSON.parse(await readFile(join(cwd, 'nice-and-tidy.config.json'), 'utf8'))
+  assert.deepEqual(targets, ['agents-md', 'claude'], 'the choice is written down, not re-asked every run')
+})
+
+test('--agents none installs AGENTS.md and its docs, and nothing that points at them', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init', '--agents', 'none'], { cwd })
+
+  assert.ok(await exists(join(cwd, 'docs/WORKFLOW.md')))
+  for (const path of ['CLAUDE.md', '.github/copilot-instructions.md', '.cursor/rules/nice-and-tidy.mdc']) {
+    assert.equal(await exists(join(cwd, path)), false, path)
+  }
+})
+
+test('no --agents and no terminal still installs for everything', async (t) => {
+  // The prompt is an offer. A pipe, a CI job or a script that never knew the flag
+  // existed has to get what it always got.
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+  for (const path of INSTALLED) assert.ok(await exists(join(cwd, path)), path)
+})
+
+test('an unusable --agents value is refused before anything is written', async (t) => {
+  const cwd = await tempDir(t)
+  const { code, stderr } = await cli(['init', '--agents', 'emacs'], { cwd })
+
+  assert.equal(code, 2)
+  assert.match(stderr, /emacs/)
+  assert.equal(await exists(join(cwd, 'AGENTS.md')), false, 'a usage error must not half-install')
+})
+
+test('--agents is refused on the commands it would do nothing for', async (t) => {
+  // bootstrap writes GitHub-side setup and clean touches files this tool never wrote.
+  // Neither depends on which agent you use, and accepting the flag there would imply
+  // otherwise.
+  const cwd = await tempDir(t)
+  for (const command of ['bootstrap', 'clean']) {
+    const { code, stderr } = await cli([command, '--agents', 'claude'], { cwd })
+    assert.equal(code, 2, command)
+    assert.match(stderr, /--agents applies to/)
+  }
+})
+
+// --- dropping an agent afterwards ---------------------------------------------
+
+test('init will not rewrite a config that already exists, and says which command will', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+
+  const { code, stdout } = await cli(['init', '--agents', 'claude'], { cwd })
+
+  assert.equal(code, 0)
+  assert.match(stdout, /the config wins/)
+  assert.match(stdout, /upgrade --agents claude/)
+  assert.ok(await exists(join(cwd, '.cursor/rules/nice-and-tidy.mdc')), 'nothing was dropped on a note alone')
+})
+
+test('upgrade --agents rewrites targets and removes what the dropped agents had', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+
+  const { code, stdout } = await cli(['upgrade', '--agents', 'claude', '--force'], { cwd })
+
+  assert.equal(code, 0)
+  assert.deepEqual(JSON.parse(await readFile(join(cwd, 'nice-and-tidy.config.json'), 'utf8')).targets, [
+    'agents-md',
+    'claude',
+  ])
+  assert.equal(await exists(join(cwd, '.github/copilot-instructions.md')), false)
+  assert.equal(await exists(join(cwd, '.cursor/rules/nice-and-tidy.mdc')), false)
+  assert.ok(await exists(join(cwd, 'CLAUDE.md')), 'the agent that was kept keeps its files')
+  assert.match(stdout, /2 removed/)
+
+  const manifest = JSON.parse(await readFile(join(cwd, '.nice-and-tidy/manifest.json'), 'utf8'))
+  assert.equal(manifest.files['.cursor/rules/nice-and-tidy.mdc'], undefined, 'a removed file is forgotten too')
+})
+
+test('a second run after dropping an agent has nothing left to say', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+  await cli(['upgrade', '--agents', 'claude', '--force'], { cwd })
+
+  const { code, stdout } = await cli(['init'], { cwd })
+
+  assert.equal(code, 0)
+  assert.match(stdout, /Already up to date/)
+  assert.doesNotMatch(stdout, /remove/)
+})
+
+test('diff shows a removal it is not going to perform', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+  await narrowTo(cwd, ['agents-md', 'claude'])
+
+  const { code, stdout } = await cli(['diff'], { cwd })
+
+  assert.equal(code, 0)
+  assert.match(stdout, /remove\s+\.cursor\/rules\/nice-and-tidy\.mdc/)
+  assert.match(stdout, /Plan:/)
+  assert.ok(await exists(join(cwd, '.cursor/rules/nice-and-tidy.mdc')), 'diff writes nothing and deletes nothing')
+})
+
+test('a file for a dropped agent that somebody edited is named, never deleted', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+  const edited = join(cwd, '.cursor/rules/nice-and-tidy.mdc')
+  await appendFile(edited, '\nmine\n')
+  await narrowTo(cwd, ['agents-md', 'claude'])
+
+  const { code, stdout } = await cli(['init'], { cwd })
+
+  assert.equal(code, 0)
+  assert.match(await readFile(edited, 'utf8'), /mine/, 'an edited file is not ours to delete, whatever the config says')
+  assert.match(stdout, /orphaned/)
+  assert.match(stdout, /delete it yourself/)
+})
+
+test('a file for a dropped agent this tool never wrote is left where it is', async (t) => {
+  const cwd = await tempDir(t)
+  await writeFile(join(cwd, 'nice-and-tidy.config.json'), `${JSON.stringify({ targets: ['agents-md'] }, null, 2)}\n`)
+  await mkdir(join(cwd, '.cursor/rules'), { recursive: true })
+  await writeFile(join(cwd, '.cursor/rules/nice-and-tidy.mdc'), 'not ours\n')
+
+  const { stdout } = await cli(['init'], { cwd })
+
+  assert.equal(await readFile(join(cwd, '.cursor/rules/nice-and-tidy.mdc'), 'utf8'), 'not ours\n')
+  assert.match(stdout, /no record of writing it/)
+})
+
+test('a dropped agent whose file is an appended block loses the block, not the file', async (t) => {
+  const cwd = await tempDir(t)
+  await mkdir(join(cwd, '.github'), { recursive: true })
+  await writeFile(join(cwd, '.github/copilot-instructions.md'), MINE)
+  await cli(['init', '--append'], { cwd })
+
+  await narrowTo(cwd, ['agents-md', 'claude'])
+  const { stdout } = await cli(['init'], { cwd })
+
+  const left = await readFile(join(cwd, '.github/copilot-instructions.md'), 'utf8')
+  assert.equal(left, MINE, 'everything outside the markers was always theirs')
+  assert.match(stdout, /its generated block only/)
+})
+
+test('--keep-existing removes nothing and says what it left', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+  await narrowTo(cwd, ['agents-md', 'claude'])
+
+  const { code, stdout } = await cli(['init', '--keep-existing'], { cwd })
+
+  assert.equal(code, 0)
+  assert.ok(await exists(join(cwd, '.cursor/rules/nice-and-tidy.mdc')))
+  assert.match(stdout, /left in place \(--keep-existing\)/)
+})
+
+test('upgrade --agents with no terminal and no --force changes nothing', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+
+  const { code, stderr } = await cli(['upgrade', '--agents', 'claude'], { cwd })
+
+  assert.equal(code, 1)
+  assert.match(stderr, /--force/)
+  assert.ok(await exists(join(cwd, '.cursor/rules/nice-and-tidy.mdc')))
+  assert.deepEqual(JSON.parse(await readFile(join(cwd, 'nice-and-tidy.config.json'), 'utf8')).targets.length, 4)
+})
+
+test('upgrade --agents together with a leave-it-alone flag is refused, not ranked', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+  for (const flag of ['--keep-existing', '--append']) {
+    const { code, stderr } = await cli(['upgrade', '--agents', 'claude', flag], { cwd })
+    assert.equal(code, 2, flag)
+    assert.match(stderr, /not both/)
+  }
+})
+
+test('upgrade --agents that changes nothing says so instead of showing an empty diff', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+  const { code, stdout } = await cli(['upgrade', '--agents', 'all'], { cwd })
+
+  assert.equal(code, 0)
+  assert.match(stdout, /already installs for all/)
+})
+
+test('the prompt on a fresh install takes an answer, and Enter takes everything', async (t) => {
+  // In process, for the same reason the append prompt test is: `interactive` comes
+  // from stdin being a TTY, and a spawned subprocess never has one.
+  for (const [answer, expected] of [
+    ['claude\n', false],
+    ['\n', true],
+  ]) {
+    const cwd = await tempDir(t)
+    const input = new PassThrough()
+    const output = new PassThrough()
+    output.on('data', (chunk) => {
+      if (/agents\?/.test(chunk.toString())) input.write(answer)
+    })
+
+    const code = await init({ cwd, interactive: true, input, output, out: () => {}, err: () => {} })
+
+    assert.equal(code, 0)
+    assert.ok(await exists(join(cwd, 'CLAUDE.md')), answer)
+    assert.equal(await exists(join(cwd, '.cursor/rules/nice-and-tidy.mdc')), expected, answer)
+  }
+})
+
+test('an unparseable answer is re-asked rather than guessed at', async (t) => {
+  const cwd = await tempDir(t)
+  const input = new PassThrough()
+  const output = new PassThrough()
+  const seen = []
+  output.on('data', (chunk) => {
+    const text = chunk.toString()
+    if (!/agents\?/.test(text)) return
+    seen.push(text)
+    input.write(seen.length === 1 ? 'emacs\n' : 'claude\n')
+  })
+
+  const code = await init({ cwd, interactive: true, input, output, out: () => {}, err: () => {} })
+
+  assert.equal(code, 0)
+  assert.equal(seen.length, 2, 'a wrong answer deserves a second go')
+  assert.equal(await exists(join(cwd, '.cursor/rules/nice-and-tidy.mdc')), false, 'the second answer is the one used')
+})
+
+test('a config that already exists answers the question, so it is never asked', async (t) => {
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+
+  const input = new PassThrough()
+  const output = new PassThrough()
+  const asked = []
+  output.on('data', (chunk) => {
+    if (/agents\?/.test(chunk.toString())) asked.push(1)
+  })
+
+  const code = await init({ cwd, interactive: true, input, output, out: () => {}, err: () => {} })
+
+  assert.equal(code, 0)
+  assert.deepEqual(asked, [])
+})
+
+/** Drops targets from a config the way a person editing the file by hand would. */
+async function narrowTo(cwd, targets) {
+  const path = join(cwd, 'nice-and-tidy.config.json')
+  const config = JSON.parse(await readFile(path, 'utf8'))
+  await writeFile(path, `${JSON.stringify({ ...config, targets }, null, 2)}\n`)
+}
 
 // --- global -------------------------------------------------------------------
 
@@ -549,13 +813,31 @@ test('init says nothing about clean when there is nothing to flag', async (t) =>
 
 // --- the non-negotiable, at the surface a person sees -------------------------
 
+const BANNED = /\b(claude|copilot|cursor|windsurf|codex|gemini|aider|devin|chatgpt|openai|anthropic)\b/i
+
 test('help and bootstrap name no agent or product', async (t) => {
   const cwd = await tempDir(t)
-  // `init`'s file listing is exempt: it prints the paths it just wrote, and a loader
-  // dictates those. Everything the CLI says in its own voice is not exempt.
-  const banned = /\b(claude|copilot|cursor|windsurf|codex|gemini|aider|devin|chatgpt|openai|anthropic)\b/i
+  // Two exemptions, both for the same reason — a name somebody else chose, quoted
+  // back. `init`'s file listing prints the paths it just wrote, and a loader dictates
+  // those. `--agents` documents the values that flag takes, and those values *are* the
+  // products; a flag for choosing between agents that will not name one is unusable.
+  //
+  // Everything the CLI says in its own voice is still not exempt, and neither is a
+  // single word of any generated file — see contract.test.mjs, which is the rule this
+  // one only guards the surface of.
   for (const args of [['--help'], ['bootstrap']]) {
     const { stdout, stderr } = await cli(args, { cwd })
-    assert.equal(banned.test(stdout + stderr), false, `${args.join(' ')} named a product`)
+    assert.equal(BANNED.test(withoutAgentsFlag(stdout + stderr)), false, `${args.join(' ')} named a product`)
   }
 })
+
+test('--help names the agents --agents accepts, or the flag cannot be used', async (t) => {
+  const cwd = await tempDir(t)
+  const { stdout } = await cli(['--help'], { cwd })
+  for (const agent of ['claude', 'copilot', 'cursor']) {
+    assert.match(stdout, new RegExp(`\\b${agent}\\b`), `--help must say that --agents takes "${agent}"`)
+  }
+})
+
+/** The `--agents` paragraph, cut out at its own indent so the rest stays under test. */
+const withoutAgentsFlag = (text) => text.replace(/^ {6}--agents {8}[\s\S]*?\n(?= {2}-h,)/m, '')

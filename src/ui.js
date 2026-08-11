@@ -25,6 +25,8 @@ export const ACTION_LABEL = {
   adopt: dim('adopt    '),
   kept: dim('kept     '),
   conflict: yellow('conflict '),
+  remove: red('remove   '),
+  orphaned: yellow('orphaned '),
 }
 
 export const CONFLICT_EXPLANATION = {
@@ -32,6 +34,17 @@ export const CONFLICT_EXPLANATION = {
   edited: 'was written by this tool, then edited by hand',
   'region-untracked': 'holds a generated block this install has no record of writing',
   'region-edited': 'holds a generated block that was then edited by hand',
+}
+
+/**
+ * Why a file for a deselected target was left in place instead of removed. Every one
+ * of these says "somebody's work is in this file," which is the whole reason removal
+ * stops here and prints a path rather than a `rm`.
+ */
+export const ORPHAN_EXPLANATION = {
+  untracked: 'this install has no record of writing it — left alone; delete it yourself if you want it gone',
+  edited: 'written by this tool, then edited by hand — left alone; delete it yourself if you want it gone',
+  'region-edited': 'its generated block was edited by hand — left alone; remove the block yourself',
 }
 
 export function printDiff(item, write = (line) => process.stdout.write(line)) {
@@ -88,6 +101,25 @@ export function createPrompter({ input = process.stdin, output = process.stdout 
         return 'skip'
       } catch {
         return 'skip'
+      }
+    },
+    /**
+     * A free-text answer, for the questions that are not "overwrite it?".
+     *
+     * Three outcomes the caller has to tell apart: the trimmed line, `''` for a bare
+     * Enter, and `null` for a stream that ended with nothing left to give. Enter means
+     * "take the default" and EOF means "nobody is here" — collapsing them is how a
+     * pipe ends up silently answering a question on somebody's behalf.
+     *
+     * Parsing and re-asking belong to the caller. This module knows how to read a line
+     * and colour a diff; it does not know what an agent target is.
+     */
+    async line(question) {
+      rl ??= createInterface({ input, output })
+      try {
+        return (await rl.question(question)).trim()
+      } catch {
+        return null
       }
     },
     close() {

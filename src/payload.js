@@ -76,6 +76,45 @@ export function inertTargets(kind, targets) {
   return targets.filter((target) => !available.has(target))
 }
 
+/**
+ * What each target actually puts on disk at this scope, target → paths.
+ *
+ * Read straight off the payload table so the choice offered to somebody and the files
+ * they get can never describe two different installs.
+ */
+export function filesByTarget(kind) {
+  const grouped = new Map()
+  for (const file of filesFor(kind)) {
+    if (!grouped.has(file.target)) grouped.set(file.target, [])
+    grouped.get(file.target).push(file.path)
+  }
+  return grouped
+}
+
+/**
+ * Files this scope knows how to write for a target that is *not* selected — the set a
+ * run may consider removing.
+ *
+ * Deliberately derived from `filesFor`, not from "everything in the manifest that
+ * isn't in today's payload." The manifest is shared with `bootstrap`, whose PR
+ * template, description gate and CI workflow never appear in an `init` payload; the
+ * broader rule would have `init` delete all three on every run. This tool only ever
+ * proposes removing a file it can name in advance and say which target produced.
+ *
+ * A path that some *selected* target also writes is excluded — no entry does that
+ * today, and if one ever does, the selected target keeping its file is the answer that
+ * cannot lose anything.
+ */
+export function orphanedFiles(kind, targets) {
+  const selected = new Set(targets)
+  const files = filesFor(kind)
+  const kept = new Set(files.filter((file) => selected.has(file.target)).map((file) => file.path))
+
+  return files
+    .filter((file) => !selected.has(file.target) && !kept.has(file.path))
+    .map((file) => ({ path: file.path, target: file.target, appendable: file.appendable === true }))
+}
+
 const MEMORY_STARTER_TEMPLATE = 'protocol/MEMORY_STARTER.md.tmpl'
 
 export async function buildPayload(scope, config) {

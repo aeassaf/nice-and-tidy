@@ -4,22 +4,78 @@ State of the build in `aeassaf/nice-and-tidy`, written for a session starting co
 no chat history, no GitHub. Read this first. See `docs/SESSION_PROTOCOL.md` for why
 this file exists and the rules for keeping it current.
 
-**Last updated:** 2026-08-10, end of the append-option session (issue #29, PR #30).
+**Last updated:** 2026-08-11, end of the choose-your-agents session (issue #33).
 
 ## Where things stand
 
 | Command | State |
 |---|---|
-| `init` | Writes the instruction files, shims, config and memory scaffold. Idempotent. |
+| `init` | Writes the instruction files, shims, config and memory scaffold. Idempotent. `--agents` picks which shims, and asks on a fresh interactive run. |
 | `diff` | Shows what `init` would change, writes nothing. |
-| `upgrade` | Re-runs `init` with a version line, and offers to backfill config keys an older file predates. |
+| `upgrade` | Re-runs `init` with a version line, offers to backfill config keys an older file predates, and is the only command that will rewrite `targets` (`--agents`, after showing the diff and asking). |
 | `bootstrap` | PR template, description gate, CI, labels, milestones. Needs `gh`. |
 | `clean` | Finds deprecated per-tool convention files (`.cursorrules`, `.windsurfrules`) and offers to replace them with a pointer to `AGENTS.md`. Never deletes. |
 
-197 tests pass (`npm test`). No Project board is linked to this repo, so there is no
+250 tests pass (`npm test`). No Project board is linked to this repo, so there is no
 board field to move; `git log`/the PR itself is the source of truth on state.
 
-## This session — the append option (#29)
+## This session — choosing your agents, and removing what a dropped one left (#33)
+
+`config.targets` already filtered the payload; there was no way to set it but by hand,
+and no way to clean up after changing it. Both halves shipped together — the first
+alone only works on a repo that has never been installed into.
+
+- **`--agents` on `init` / `diff` / `upgrade`.** Comma-separated list, or `all`, or
+  `none`. `config.js#parseAgents` owns the parsing; `agentsLabel` is its inverse and a
+  test pins the round trip, because the CLI prints a label back at you in the
+  "run this instead" note and it has to be a value you can actually paste.
+- **`agents-md` is never offered as a choice.** `validateConfig` already refuses a
+  config without it. It is always added to whatever gets parsed, `none` means
+  "AGENTS.md and its docs alone," and `--help` says so.
+- **`init` still never rewrites a config that exists** — same precedent `--gitflow`
+  set. It prints a note naming `upgrade --agents <label>` instead of sending somebody
+  to a text editor. `upgrade`'s `backfillConfig` became `rewriteConfig` and now covers
+  both reasons a config changes; `describe()` is one place deciding the wording, so
+  the heading, the confirmation line and the no-terminal message cannot disagree.
+  "added the missing keys" printed over a run that just dropped two agents would be a
+  false account of what happened to somebody's repo.
+- **`upgrade --agents` with `--keep-existing` or `--append` is a usage error.** One
+  asks for the config to change, the other says don't. Ranking them silently would
+  keep installing for agents somebody just asked it to stop installing for.
+- **The prune rule — the part where getting it wrong loses a file.** Three states,
+  and only the first touches the disk:
+  - manifest records the path **and** the on-disk hash matches → `remove`, and the
+    manifest entry is dropped with it;
+  - recorded but the hash differs, or never recorded → `orphaned`. Named, never
+    touched, manifest entry left exactly as it was (same reasoning as a skipped
+    conflict);
+  - recorded with nothing on disk → `forget`, a silent manifest cleanup.
+- **Region files lose the block, not the file.** `region.js#stripRegion` is new. For an
+  appended file the manifest holds `hash(region interior)` — comparing that against the
+  whole file would read *every* appended file as hand-edited and orphan it. Stripping to
+  nothing means the file was only ever our block, and that one is deleted rather than
+  left empty (`strip: undefined` is the signal to `applyPlan`).
+- **Removal candidates come from `payload.js#orphanedFiles`, never from "the manifest
+  minus today's payload."** The manifest is shared with `bootstrap`, whose PR template,
+  description gate and CI workflow never appear in an `init` payload — the broader rule
+  would have `init` delete all three on every run. `test/payload.test.mjs` (new) pins
+  this so it can't come back as a simplification.
+- **Empty parent directories are left behind on purpose.** `.cursor/rules/` may hold
+  rules this tool never wrote.
+- **A fresh interactive `init` now asks which agents.** Enter takes all — the prompt is
+  an offer, and a pipe or CI job that never knew the flag existed gets what it always
+  got. `prompter.line()` is new alongside `ask()`, on the *same* prompter instance:
+  `init` now creates one for the whole run and passes it to `resolveConflicts`, because
+  a second readline interface on the same stdin gets EOF instead of an answer. A wrong
+  answer is re-asked, up to three times, then falls back to all.
+- **The naming contract needed a stated exemption.** `test/cli.test.mjs`'s "help and
+  bootstrap name no agent or product" failed on the new `--help` text. A flag for
+  choosing between agents that will not name one is unusable, so the test now cuts the
+  `--agents` paragraph out and checks the rest — plus a second test asserting the names
+  *are* there. `contract.test.mjs` is untouched: not one word of any generated file
+  names a product, and that rule did not move.
+
+## An earlier session — the append option (#29)
 
 The third answer to "this file already exists," alongside overwrite and keep-mine.
 Your content stays, the generated content goes below it, fenced by two markers.
@@ -102,7 +158,9 @@ Your content stays, the generated content goes below it, fenced by two markers.
 
 ## Known gaps
 
-- **`plan.js` cannot remove a file** when the config value that produced it goes away.
+- **Removal is scoped to target-gated files.** Change `protocol.memoryFile` and the
+  old scaffold stays where it was; rename a payload file in a future release and the
+  old one is left behind. Both are deliberate — see the note on `orphanedFiles`.
 - **A marker pair written at column zero inside somebody's own fenced code block would
   be read as a real region.** It degrades to a conflict rather than a silent write, so
   it asks — but it does ask about a file it has no business managing. Indented copies
@@ -115,15 +173,17 @@ Your content stays, the generated content goes below it, fenced by two markers.
 
 ## Next
 
-- Get PR #30 reviewed and merged. `Closes #29` closes the issue automatically (merges
-  into `main`, the default branch).
+- Get the PR for #33 reviewed and merged. `Closes #33` closes the issue automatically
+  (merges into `main`, the default branch).
 - `npm publish` is still a human action, not run yet (carried from #14).
 
 ## Running it
 
 ```bash
-npm test                              # 197
+npm test                              # 250
 node bin/cli.js diff                  # everything unchanged/kept
+node bin/cli.js init --agents claude  # fresh install, one agent only
+node bin/cli.js upgrade --agents all  # change an existing install's targets; asks first
 node bin/cli.js init --append         # keeps existing files, adds the block below them
 node bin/cli.js clean --dry-run       # reports any deprecated convention files, writes nothing
 node bin/cli.js bootstrap --dry-run   # GitHub-side plan, contacts nothing
