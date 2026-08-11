@@ -16,7 +16,7 @@ this file exists and the rules for keeping it current.
 | `bootstrap` | PR template, description gate, CI, labels, milestones. Needs `gh`. |
 | `clean` | Finds deprecated per-tool convention files (`.cursorrules`, `.windsurfrules`) and offers to replace them with a pointer to `AGENTS.md`. Never deletes. |
 
-250 tests pass (`npm test`). No Project board is linked to this repo, so there is no
+253 tests pass (`npm test`). No Project board is linked to this repo, so there is no
 board field to move; `git log`/the PR itself is the source of truth on state.
 
 ## This session — choosing your agents, and removing what a dropped one left (#33)
@@ -68,6 +68,20 @@ alone only works on a repo that has never been installed into.
   `init` now creates one for the whole run and passes it to `resolveConflicts`, because
   a second readline interface on the same stdin gets EOF instead of an answer. A wrong
   answer is re-asked, up to three times, then falls back to all.
+- **Caught by the advisor pass, not by the tests: `--agents --dry-run` lied.**
+  `rewriteConfig` correctly writes nothing in a dry run, then `init` read the config
+  still on disk and planned against the *old* targets — so the preview of a command
+  that deletes two files reported "nothing to write." The existing removal test passed
+  because it narrowed the config on disk first and never exercised the flag path. A
+  dry run with `--agents` now plans against the requested targets (`previewing` in
+  `init.js`), the "config wins" note is suppressed there because nothing is being
+  refused, and `upgrade` forwards `agents` on `dryRun` and on `APPLIED`, withholding
+  it only when the change was offered and declined. Pinned by a test that asserts the
+  preview and the real run agree on the count.
+- **Two smaller false accounts, same commit.** "recorded the version this ran with"
+  printed over a run whose only manifest change was a `FORGET`; and `--keep-existing`
+  printed "already up to date" directly above "3 files left in place" because `idle`
+  was computed from the applied removals rather than the planned ones.
 - **The naming contract needed a stated exemption.** `test/cli.test.mjs`'s "help and
   bootstrap name no agent or product" failed on the new `--help` text. A flag for
   choosing between agents that will not name one is unusable, so the test now cuts the
@@ -180,7 +194,7 @@ Your content stays, the generated content goes below it, fenced by two markers.
 ## Running it
 
 ```bash
-npm test                              # 250
+npm test                              # 253
 node bin/cli.js diff                  # everything unchanged/kept
 node bin/cli.js init --agents claude  # fresh install, one agent only
 node bin/cli.js upgrade --agents all  # change an existing install's targets; asks first
