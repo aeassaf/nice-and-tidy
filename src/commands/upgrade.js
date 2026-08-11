@@ -117,11 +117,14 @@ export async function upgrade(options) {
       append,
       dryRun,
       gitflow,
-      // Only forwarded when there was no config for it to have been written into.
-      // Otherwise the file on disk is now the answer — either it was just rewritten
-      // above, or the question was asked and declined, and `init`'s "the config wins"
-      // note would be a second, contradictory answer to something already settled.
-      agents: rawConfigText === null ? agents : undefined,
+      // Withheld in exactly one case: a config that exists, was offered the change,
+      // and did not take it. There the file on disk is the answer, and `init`'s "the
+      // config wins" note would contradict a question just asked and declined.
+      //
+      // A dry run, though, wrote nothing above — so the config on disk still lists the
+      // old targets, and planning against it would report no removals for a command
+      // whose whole point is that it removes things.
+      agents: rawConfigText === null || dryRun || backfill === APPLIED ? agents : undefined,
       interactive,
       out,
       err,

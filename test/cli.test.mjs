@@ -12,7 +12,7 @@
  */
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { appendFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { appendFile, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { PassThrough } from 'node:stream'
 import { test } from 'node:test'
@@ -504,6 +504,65 @@ test('diff shows a removal it is not going to perform', async (t) => {
   assert.match(stdout, /remove\s+\.cursor\/rules\/nice-and-tidy\.mdc/)
   assert.match(stdout, /Plan:/)
   assert.ok(await exists(join(cwd, '.cursor/rules/nice-and-tidy.mdc')), 'diff writes nothing and deletes nothing')
+})
+
+test('a dry run of --agents reports the removals the real run performs', async (t) => {
+  // The whole point of previewing `--agents` is to see what it takes away. Planning
+  // against the config still on disk would report nothing and delete two files a
+  // moment later — the exact drift diff exists to prevent.
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+
+  const preview = await cli(['upgrade', '--agents', 'claude', '--dry-run'], { cwd })
+  assert.equal(preview.code, 0)
+  assert.match(preview.stdout, /remove\s+\.github\/copilot-instructions\.md/)
+  assert.match(preview.stdout, /remove\s+\.cursor\/rules\/nice-and-tidy\.mdc/)
+  assert.match(preview.stdout, /Plan: 2 removed/)
+
+  assert.ok(await exists(join(cwd, '.cursor/rules/nice-and-tidy.mdc')), 'a dry run deleted a file')
+  assert.deepEqual(
+    JSON.parse(await readFile(join(cwd, 'nice-and-tidy.config.json'), 'utf8')).targets.length,
+    4,
+    'a dry run rewrote the config',
+  )
+
+  const real = await cli(['upgrade', '--agents', 'claude', '--force'], { cwd })
+  assert.match(real.stdout, /2 removed/, 'the preview promised two removals; the run has to make them')
+  assert.equal(await exists(join(cwd, '.cursor/rules/nice-and-tidy.mdc')), false)
+})
+
+test('diff --agents previews without claiming the config wins', async (t) => {
+  // "the config wins" is a refusal, and nothing is being refused here — a preview was
+  // asked for and given. Printing both would be two answers to the same question.
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+
+  const { code, stdout } = await cli(['diff', '--agents', 'claude'], { cwd })
+
+  assert.equal(code, 0)
+  assert.match(stdout, /remove/)
+  assert.doesNotMatch(stdout, /the config wins/)
+  assert.match(stdout, /Nothing here writes to nice-and-tidy\.config\.json/)
+})
+
+test('a stale manifest entry is dropped without claiming a version was recorded', async (t) => {
+  // The file is gone because somebody deleted it themselves. The manifest still has
+  // to forget it — but "recorded the version this ran with" would be an account of an
+  // event that did not happen.
+  const cwd = await tempDir(t)
+  await cli(['init'], { cwd })
+  await narrowTo(cwd, ['agents-md', 'claude'])
+  await rm(join(cwd, '.cursor/rules/nice-and-tidy.mdc'))
+  await rm(join(cwd, '.github/copilot-instructions.md'))
+
+  const { code, stdout } = await cli(['init'], { cwd })
+
+  assert.equal(code, 0)
+  assert.match(stdout, /forgot 2 entries for files that are already gone/)
+  assert.doesNotMatch(stdout, /recorded the version/)
+
+  const manifest = JSON.parse(await readFile(join(cwd, '.nice-and-tidy/manifest.json'), 'utf8'))
+  assert.equal(manifest.files['.cursor/rules/nice-and-tidy.mdc'], undefined)
 })
 
 test('a file for a dropped agent that somebody edited is named, never deleted', async (t) => {

@@ -82,7 +82,24 @@ export async function init(options) {
       ? null
       : (agents ?? (interactive && !dryRun ? await askForAgents({ kind: scope.kind, prompter, out }) : null))
 
-    const config = existing ? existing.config : await freshConfig(scope, cwd, gitflow, chosen)
+    // A dry run with `--agents` was asked what those agents would mean, so it answers
+    // that — planning against the config on disk instead would report on a command
+    // nobody typed, and report "nothing to remove" for a run that removes two files.
+    // A real run is refused below instead: `init` does not rewrite a config that exists.
+    const previewing = existing !== null && agents !== undefined && dryRun
+
+    const config = existing
+      ? previewing
+        ? { ...existing.config, targets: agents }
+        : existing.config
+      : await freshConfig(scope, cwd, gitflow, chosen)
+
+    if (previewing) {
+      out(
+        `  ${dim(`note     showing --agents ${agentsLabel(agents)}. Nothing here writes to ${CONFIG_FILENAME} —`)}\n` +
+          `  ${dim(`         \`nice-and-tidy upgrade --agents ${agentsLabel(agents)}\` is what changes it for real.`)}\n`,
+      )
+    }
 
     if (existing && gitflow !== undefined && gitflow !== config.gitflow) {
       out(
@@ -95,7 +112,7 @@ export async function init(options) {
     // already exists, but unlike `gitflow` there is a command that will — `upgrade`
     // already owns the one path that asks before touching the user's config, so this
     // points at it rather than sending somebody to a text editor.
-    if (existing && agents !== undefined && !sameTargets(agents, config.targets)) {
+    if (existing && agents !== undefined && !previewing && !sameTargets(agents, config.targets)) {
       out(
         `  ${yellow('note')}     ${CONFIG_FILENAME} already sets "targets", and the config wins.\n` +
           `           \`nice-and-tidy upgrade --agents ${agentsLabel(agents)}\` changes it — it asks first,\n` +
@@ -121,8 +138,11 @@ export async function init(options) {
       out(`  ${ACTION_LABEL[item.action]}  ${item.path}${suffix}\n`)
     }
 
+    // Judged on `removals`, not `applicable`: a run holding files back under
+    // `--keep-existing` has something to say about them, and "already up to date"
+    // directly above "3 files left in place" is two answers to the same question.
     const idle =
-      items.every((item) => item.action === UNCHANGED || item.action === KEPT) && listable(applicable).length === 0
+      items.every((item) => item.action === UNCHANGED || item.action === KEPT) && listable(removals).length === 0
 
     const { outcome, resolutions } = await resolveConflicts(items, {
       force,
@@ -146,7 +166,14 @@ export async function init(options) {
       dryRun,
     })
 
-    out(`\n${summarise(items, result, { dryRun, idle })}\n`)
+    out(
+      `\n${summarise(items, result, {
+        dryRun,
+        idle,
+        forgotten: applicable.filter((item) => item.action === FORGET).length,
+        versionRecorded: !dryRun && result.manifest.generatorVersion !== manifest.generatorVersion,
+      })}\n`,
+    )
 
     for (const note of removalNotes(removals, { keepExisting })) out(`${dim(`  ${note}`)}\n`)
 
@@ -277,14 +304,19 @@ function removalNotes(removals, { keepExisting }) {
   return notes
 }
 
-function summarise(items, result, { dryRun, idle }) {
+function summarise(items, result, { dryRun, idle, forgotten, versionRecorded }) {
   if (idle) {
-    // Every file is untouched, but the manifest still gets rewritten when the
-    // running version differs from the one it last recorded — that is real, not
-    // nothing, and a repo that commits the manifest would otherwise see a dirty
-    // file after a run that just claimed there was nothing to write.
-    const versionOnly = !dryRun && result.manifestChanged
-    return dim(`  Already up to date. Nothing to write.${versionOnly ? ' (recorded the version this ran with.)' : ''}`)
+    // Every file is untouched, but the manifest can still change — and a repo that
+    // commits it would otherwise see a dirty file after a run that just claimed there
+    // was nothing to write. Two different reasons, said apart: a version bump is not
+    // the same event as dropping the record of a file somebody deleted themselves, and
+    // one message covering both would be right about half the runs that print it.
+    const why = []
+    if (versionRecorded) why.push('recorded the version this ran with')
+    if (forgotten > 0) {
+      why.push(`forgot ${forgotten} ${forgotten === 1 ? 'entry' : 'entries'} for files that are already gone`)
+    }
+    return dim(`  Already up to date. Nothing to write.${why.length > 0 ? ` (${why.join(', ')}.)` : ''}`)
   }
 
   const counted = (action) => items.filter((item) => item.action === action).length
