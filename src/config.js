@@ -27,6 +27,63 @@ export const CONFIG_FILENAME = 'nice-and-tidy.config.json'
  */
 export const TARGETS = ['agents-md', 'claude', 'copilot', 'cursor']
 
+/**
+ * The targets a person actually chooses between. `agents-md` is not one of them: it is
+ * the file every other target points at, `validateConfig` refuses a config without it,
+ * and offering it as a choice would only offer the chance to break the install.
+ */
+export const AGENT_TARGETS = TARGETS.filter((target) => target !== 'agents-md')
+
+/**
+ * Parses a `--agents` value into a `targets` array, or explains why it can't.
+ *
+ * `all` and `none` are the two ends and cannot be mixed with anything, because "all,cursor"
+ * and "none,claude" each read two ways, and a flag that silently picks one of them is
+ * the kind of almost-right that costs an afternoon. `agents-md` is accepted in a list
+ * and ignored, because it is always added anyway; refusing it would be pedantry about
+ * a value that changes nothing.
+ */
+export function parseAgents(value) {
+  const named = String(value)
+    .split(',')
+    .map((entry) => entry.trim().toLowerCase())
+    .filter((entry) => entry !== '')
+
+  const usage = `Known agents: ${AGENT_TARGETS.join(', ')}. Or "all", or "none" for AGENTS.md on its own.`
+
+  if (named.length === 0) return { error: `--agents needs a value. ${usage}` }
+
+  for (const keyword of ['all', 'none']) {
+    if (!named.includes(keyword)) continue
+    if (named.length > 1) return { error: `--agents ${keyword} cannot be combined with anything else. ${usage}` }
+    return { targets: keyword === 'all' ? [...TARGETS] : ['agents-md'] }
+  }
+
+  const unknown = named.filter((entry) => !TARGETS.includes(entry))
+  if (unknown.length > 0) {
+    return { error: `--agents has unknown ${unknown.length === 1 ? 'entry' : 'entries'}: ${unknown.join(', ')}. ${usage}` }
+  }
+
+  // Ordered by TARGETS rather than by what was typed, so the same choice written two
+  // ways produces the same config file and the same diff.
+  return { targets: TARGETS.filter((target) => target === 'agents-md' || named.includes(target)) }
+}
+
+/** A `targets` array written the way `--agents` takes it. Round-trips `parseAgents`. */
+export function agentsLabel(targets) {
+  const agents = AGENT_TARGETS.filter((target) => targets.includes(target))
+  if (agents.length === 0) return 'none'
+  if (agents.length === AGENT_TARGETS.length) return 'all'
+  return agents.join(',')
+}
+
+/** Two target lists holding the same targets, whatever order each is written in. */
+export function sameTargets(a, b) {
+  const left = [...a].sort()
+  const right = [...b].sort()
+  return left.length === right.length && left.every((target, index) => target === right[index])
+}
+
 const USERNAME = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/
 const REPO_SLUG = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/
 

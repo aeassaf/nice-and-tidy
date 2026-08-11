@@ -13,7 +13,21 @@ import { test } from 'node:test'
 
 import { hashContent } from '../src/hash.js'
 import { emptyManifest, readManifest } from '../src/manifest.js'
-import { ADOPT, CONFLICT, CREATE, GENERATED, KEPT, UNCHANGED, UPDATE, applyPlan, planFiles } from '../src/plan.js'
+import {
+  ADOPT,
+  CONFLICT,
+  CREATE,
+  FORGET,
+  GENERATED,
+  KEPT,
+  ORPHANED,
+  REMOVE,
+  UNCHANGED,
+  UPDATE,
+  applyPlan,
+  planFiles,
+  planRemovals,
+} from '../src/plan.js'
 import { appendRegion, findRegion, wrapRegion } from '../src/region.js'
 import { packageVersion } from '../src/version.js'
 import { tempDir } from './helpers.mjs'
@@ -435,4 +449,156 @@ test('a manifest entry that is not a sha256 is dropped', async (t) => {
   await writeFile(manifestPath, JSON.stringify({ manifestVersion: 1, files: { a: 'nope', b: hashContent('x') } }))
   const manifest = await readManifest(manifestPath)
   assert.deepEqual(Object.keys(manifest.files), ['b'])
+})
+
+// --- the other direction: a target that went away -----------------------------
+//
+// Every test below is about the same question asked in reverse: "is this file mine
+// to take away." The manifest answers it, and the answer has to be no by default:
+// getting an update wrong shows somebody a diff, getting a removal wrong loses a
+// file that may never have been committed.
+
+const candidate = (path, extra = {}) => ({ path, target: 'copilot', appendable: false, ...extra })
+
+const planOneRemoval = (root, item, manifest = emptyManifest()) =>
+  planRemovals(root, [item], manifest).then((r) => r[0])
+
+test('ours, untouched → removed', async (t) => {
+  const root = await tempDir(t)
+  await writeFile(join(root, 'shim.md'), 'ours\n')
+  const plan = await planOneRemoval(root, candidate('shim.md'), manifestWith({ 'shim.md': hashContent('ours\n') }))
+  assert.equal(plan.action, REMOVE)
+})
+
+test('ours, then edited → orphaned, never removed', async (t) => {
+  const root = await tempDir(t)
+  await writeFile(join(root, 'shim.md'), 'ours, plus my note\n')
+  const plan = await planOneRemoval(root, candidate('shim.md'), manifestWith({ 'shim.md': hashContent('ours\n') }))
+  assert.equal(plan.action, ORPHANED)
+  assert.equal(plan.reason, 'edited')
+})
+
+test('never ours → orphaned, never removed', async (t) => {
+  const root = await tempDir(t)
+  await writeFile(join(root, 'shim.md'), 'somebody else wrote this\n')
+  const plan = await planOneRemoval(root, candidate('shim.md'))
+  assert.equal(plan.action, ORPHANED)
+  assert.equal(plan.reason, 'untracked')
+})
+
+test('a hash that only differs by a trailing edit is still not ours to delete', async (t) => {
+  // The near miss is the dangerous one: a file that is 99% what we wrote is a file
+  // somebody added one line to, and that line is the part with their work in it.
+  const root = await tempDir(t)
+  await writeFile(join(root, 'shim.md'), 'ours\n\nand one line of mine\n')
+  const plan = await planOneRemoval(root, candidate('shim.md'), manifestWith({ 'shim.md': hashContent('ours\n') }))
+  assert.equal(plan.action, ORPHANED)
+})
+
+test('nothing on disk is nothing to report, only a stale manifest entry to drop', async (t) => {
+  const root = await tempDir(t)
+  const gone = await planOneRemoval(root, candidate('shim.md'), manifestWith({ 'shim.md': hashContent('ours\n') }))
+  assert.equal(gone.action, FORGET)
+
+  const never = await planOneRemoval(root, candidate('shim.md'))
+  assert.equal(never, undefined, 'no file, no record, so there is nothing to say about it')
+})
+
+test('an appended file loses its block, not the file', async (t) => {
+  const root = await tempDir(t)
+  const mine = '# mine\n'
+  await writeFile(join(root, 'shim.md'), appendRegion(mine, 'ours\n'))
+
+  const plan = await planOneRemoval(
+    root,
+    candidate('shim.md', { appendable: true }),
+    // What the manifest holds for an appended file is the region's interior, never
+    // the whole file; the invariant the append feature rests on.
+    manifestWith({ 'shim.md': hashContent('ours\n') }),
+  )
+
+  assert.equal(plan.action, REMOVE)
+  assert.equal(plan.strip, mine, 'the bytes that stay are theirs, exactly as they were')
+})
+
+test('an appended file whose block was edited is orphaned, not stripped', async (t) => {
+  const root = await tempDir(t)
+  await writeFile(join(root, 'shim.md'), appendRegion('# mine\n', 'ours, edited\n'))
+  const plan = await planOneRemoval(
+    root,
+    candidate('shim.md', { appendable: true }),
+    manifestWith({ 'shim.md': hashContent('ours\n') }),
+  )
+  assert.equal(plan.action, ORPHANED)
+  assert.equal(plan.reason, 'region-edited')
+})
+
+test('a file that is only a region is deleted rather than left empty', async (t) => {
+  const root = await tempDir(t)
+  await writeFile(join(root, 'shim.md'), wrapRegion('ours\n'))
+  const plan = await planOneRemoval(
+    root,
+    candidate('shim.md', { appendable: true }),
+    manifestWith({ 'shim.md': hashContent('ours\n') }),
+  )
+  assert.equal(plan.action, REMOVE)
+  assert.equal(plan.strip, undefined, 'undefined strip is what tells applyPlan to unlink')
+})
+
+// --- applying a removal --------------------------------------------------------
+
+test('applying a removal deletes the file and forgets it', async (t) => {
+  const root = await tempDir(t)
+  const path = join(root, 'shim.md')
+  await writeFile(path, 'ours\n')
+  const manifest = manifestWith({ 'shim.md': hashContent('ours\n'), 'AGENTS.md': hashContent('a\n') })
+
+  const removals = await planRemovals(root, [candidate('shim.md')], manifest)
+  const result = await applyPlan([], { manifest, manifestPath: join(root, 'm.json'), removals })
+
+  assert.equal(await readFile(path, 'utf8').then(() => true, () => false), false)
+  assert.deepEqual(Object.keys(result.manifest.files), ['AGENTS.md'], 'a stale entry would re-claim the path')
+  assert.equal(result.removed.length, 1)
+})
+
+test('a dry run removes nothing and rewrites no manifest', async (t) => {
+  const root = await tempDir(t)
+  const path = join(root, 'shim.md')
+  await writeFile(path, 'ours\n')
+  const manifest = manifestWith({ 'shim.md': hashContent('ours\n') })
+
+  const removals = await planRemovals(root, [candidate('shim.md')], manifest)
+  await applyPlan([], { manifest, manifestPath: join(root, 'm.json'), removals, dryRun: true })
+
+  assert.equal(await readFile(path, 'utf8'), 'ours\n')
+})
+
+test('an orphan keeps its manifest entry, so re-selecting the target still asks', async (t) => {
+  // Dropping the entry here would make the file untracked. A later run that turned
+  // the target back on would read untracked as "not ours", which is a conflict, so
+  // it would still ask. But the entry is also the record of what we last wrote, and
+  // throwing it away for a file we deliberately did not touch is a lie about history.
+  const root = await tempDir(t)
+  await writeFile(join(root, 'shim.md'), 'ours, edited\n')
+  const manifest = manifestWith({ 'shim.md': hashContent('ours\n') })
+
+  const removals = await planRemovals(root, [candidate('shim.md')], manifest)
+  const result = await applyPlan([], { manifest, manifestPath: join(root, 'm.json'), removals })
+
+  assert.equal(await readFile(join(root, 'shim.md'), 'utf8'), 'ours, edited\n')
+  assert.equal(result.manifest.files['shim.md'], hashContent('ours\n'))
+  assert.equal(result.removed.length, 0)
+})
+
+test('applying a strip keeps their content and forgets the path', async (t) => {
+  const root = await tempDir(t)
+  const path = join(root, 'shim.md')
+  await writeFile(path, appendRegion('# mine\n', 'ours\n'))
+  const manifest = manifestWith({ 'shim.md': hashContent('ours\n') })
+
+  const removals = await planRemovals(root, [candidate('shim.md', { appendable: true })], manifest)
+  const result = await applyPlan([], { manifest, manifestPath: join(root, 'm.json'), removals })
+
+  assert.equal(await readFile(path, 'utf8'), '# mine\n')
+  assert.equal(result.manifest.files['shim.md'], undefined)
 })

@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises'
 
-import { CONFIG_FILENAME, ConfigError, readConfig, serialiseConfig } from '../config.js'
+import { CONFIG_FILENAME, ConfigError, agentsLabel, readConfig, sameTargets, serialiseConfig } from '../config.js'
 import { findRepoRoot } from '../git.js'
 import { readManifest } from '../manifest.js'
 import { EXIT_UNRESOLVED, EXIT_USAGE, init } from './init.js'
@@ -31,12 +31,26 @@ export async function upgrade(options) {
     append = false,
     dryRun = false,
     gitflow,
+    agents,
     interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY),
     out = (text) => process.stdout.write(text),
     err = (text) => process.stderr.write(text),
     input = process.stdin,
     output = process.stdout,
   } = options ?? {}
+
+  // `--agents` asks for the config to change; these two say don't touch anything. One
+  // of them has to lose, and picking a winner silently is worse than saying so; a run
+  // that quietly ignored `--agents` would go on installing for agents somebody just
+  // asked it to stop installing for.
+  if (agents !== undefined && (keepExisting || append)) {
+    const flag = keepExisting ? '--keep-existing' : '--append'
+    err(
+      `Pass --agents or ${flag}, not both. --agents changes "targets" in ${CONFIG_FILENAME}, ` +
+        `and ${flag} says leave files as they are.\n`,
+    )
+    return EXIT_USAGE
+  }
 
   const scope = isGlobal ? globalScope() : localScope((await findRepoRoot(cwd)) ?? cwd)
 
@@ -80,9 +94,10 @@ export async function upgrade(options) {
   // docstring warns about: the second one gets EOF instead of an answer.
   const prompter = interactive ? createPrompter({ input, output }) : null
   try {
-    const backfill = await backfillConfig({
+    const backfill = await rewriteConfig({
       configPath: scope.configPath,
       rawConfigText,
+      agents,
       force,
       keepExisting,
       append,
@@ -102,6 +117,14 @@ export async function upgrade(options) {
       append,
       dryRun,
       gitflow,
+      // Withheld in exactly one case: a config that exists, was offered the change,
+      // and did not take it. There the file on disk is the answer, and `init`'s "the
+      // config wins" note would contradict a question just asked and declined.
+      //
+      // A dry run, though, wrote nothing above, so the config on disk still lists the
+      // old targets, and planning against it would report no removals for a command
+      // whose whole point is that it removes things.
+      agents: rawConfigText === null || dryRun || backfill === APPLIED ? agents : undefined,
       interactive,
       out,
       err,
@@ -119,15 +142,23 @@ const APPLIED = 'applied'
 const BLOCKED = 'blocked'
 
 /**
- * Adds config keys a newer release's `defaultConfig()` carries that the file on disk
- * predates; never removes or changes a key already present. `readConfig` already
- * computes exactly this shape (raw file merged over current defaults, including
- * nested `board`/`protocol` defaults); the diff against the raw file is entirely
- * "what's new," so nothing here needs to know which keys are actually new.
+ * The one place anything rewrites a config the user owns, for the two reasons there
+ * are to.
+ *
+ * The first is automatic: a newer release's `defaultConfig()` carries keys the file on
+ * disk predates. `readConfig` already computes exactly that shape (raw file merged
+ * over current defaults, nested objects included), so the diff against the raw text is
+ * entirely "what's new," and nothing here needs to know which keys those are. Keys
+ * already present are never removed or changed.
+ *
+ * The second is asked for: `--agents` sets `targets`. That one *does* change a key the
+ * user set, which is why it lives behind the same prompt rather than in `init`, and
+ * why the diff is shown before the question either way.
  */
-async function backfillConfig({
+async function rewriteConfig({
   configPath,
   rawConfigText,
+  agents,
   force,
   keepExisting,
   append,
@@ -144,16 +175,23 @@ async function backfillConfig({
     existing = await readConfig(configPath)
   } catch (error) {
     // A config that fails to parse or validate is `init`'s error to report, in the
-    // one place that already does so consistently; not backfill's to duplicate.
+    // one place that already does so consistently; not this function's to duplicate.
     if (error instanceof ConfigError) return SKIPPED
     throw error
   }
   if (!existing) return SKIPPED
 
-  const desiredText = serialiseConfig(existing.config)
+  const merged = serialiseConfig(existing.config)
+  const retargeted = agents !== undefined && !sameTargets(agents, existing.config.targets)
+  const desiredText = retargeted ? serialiseConfig({ ...existing.config, targets: agents }) : merged
+
+  if (agents !== undefined && !retargeted) {
+    out(`  ${dim(`config   ${CONFIG_FILENAME} already installs for ${agentsLabel(agents)}; nothing to change there.`)}\n`)
+  }
   if (desiredText === rawConfigText) return SKIPPED
 
-  out(`  ${yellow('config')}   ${CONFIG_FILENAME} predates keys this release adds:\n`)
+  const change = describe({ retargeted, agents, backfilled: merged !== rawConfigText })
+  out(`  ${yellow('config')}   ${CONFIG_FILENAME} ${change.why}:\n`)
   printDiff({ path: CONFIG_FILENAME, actual: rawConfigText, desired: desiredText }, out)
 
   if (dryRun) return SKIPPED
@@ -175,7 +213,7 @@ async function backfillConfig({
 
   if (force) {
     await writeFile(configPath, desiredText, 'utf8')
-    out(`\n  added the missing keys to ${CONFIG_FILENAME}.\n`)
+    out(`\n  ${change.done} ${CONFIG_FILENAME}.\n`)
     return APPLIED
   }
 
@@ -188,7 +226,7 @@ async function backfillConfig({
     }
     if (answer === 'overwrite') {
       await writeFile(configPath, desiredText, 'utf8')
-      out(`\n  added the missing keys to ${CONFIG_FILENAME}.\n`)
+      out(`\n  ${change.done} ${CONFIG_FILENAME}.\n`)
       return APPLIED
     }
     out(`\n  left ${CONFIG_FILENAME} alone.\n`)
@@ -196,9 +234,40 @@ async function backfillConfig({
   }
 
   err(
-    `\n${CONFIG_FILENAME} has keys available that are missing above, and there is no terminal here to ask on.\n` +
-      `  --keep-existing   leave it alone\n` +
-      `  --force           add the missing keys\n`,
+    `\n${CONFIG_FILENAME} ${change.blocked}, and there is no terminal here to ask on.\n` +
+      (agents === undefined ? `  --keep-existing   leave it alone\n` : '') +
+      `  --force           ${change.force}\n`,
   )
   return BLOCKED
+}
+
+/**
+ * The same config write has two reasons behind it and they are not interchangeable.
+ * "added the missing keys" printed over a run that just dropped two agents would be a
+ * false account of what happened to somebody's repo. One place decides the wording so
+ * the heading, the confirmation and the no-terminal message can never disagree.
+ */
+function describe({ retargeted, agents, backfilled }) {
+  if (retargeted && backfilled) {
+    return {
+      why: `would install for ${agentsLabel(agents)} instead, and predates keys this release adds`,
+      done: `set "targets" and added the missing keys to`,
+      blocked: `would change "targets" and gain keys this release adds`,
+      force: 'apply both',
+    }
+  }
+  if (retargeted) {
+    return {
+      why: `would install for ${agentsLabel(agents)} instead`,
+      done: `set "targets" in`,
+      blocked: `would change "targets"`,
+      force: 'change it',
+    }
+  }
+  return {
+    why: 'predates keys this release adds',
+    done: 'added the missing keys to',
+    blocked: 'has keys available that are missing above',
+    force: 'add the missing keys',
+  }
 }

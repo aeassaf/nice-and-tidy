@@ -3,7 +3,18 @@ import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { ConfigError, defaultConfig, readConfig, validateConfig, viewModel } from '../src/config.js'
+import {
+  AGENT_TARGETS,
+  ConfigError,
+  TARGETS,
+  agentsLabel,
+  defaultConfig,
+  parseAgents,
+  readConfig,
+  sameTargets,
+  validateConfig,
+  viewModel,
+} from '../src/config.js'
 import { parseRemote } from '../src/git.js'
 import { tempDir } from './helpers.mjs'
 
@@ -165,4 +176,63 @@ test('every remote form resolves to owner/name', () => {
 
 test('a remote that is not parseable yields null rather than a guess', () => {
   for (const url of ['', '   ', null, undefined, 'not-a-url']) assert.equal(parseRemote(url), null)
+})
+
+// --- --agents, the flag that has to survive being typed by a person -----------
+
+test('a list of agents becomes targets, with agents-md always in it', () => {
+  assert.deepEqual(parseAgents('claude').targets, ['agents-md', 'claude'])
+  assert.deepEqual(parseAgents('claude,cursor').targets, ['agents-md', 'claude', 'cursor'])
+})
+
+test('all and none are the two ends', () => {
+  assert.deepEqual(parseAgents('all').targets, TARGETS)
+  assert.deepEqual(parseAgents('none').targets, ['agents-md'])
+})
+
+test('the same choice written two ways parses to the same config', () => {
+  // Order and spacing and case are how somebody types, not what they mean. Letting
+  // any of them through would put a reordered targets array in a diff for no reason.
+  const canonical = parseAgents('claude,cursor').targets
+  for (const written of ['cursor,claude', ' Claude , CURSOR ', 'claude,,cursor']) {
+    assert.deepEqual(parseAgents(written).targets, canonical, written)
+  }
+})
+
+test('agents-md in the list is accepted and changes nothing', () => {
+  assert.deepEqual(parseAgents('agents-md,claude').targets, ['agents-md', 'claude'])
+})
+
+test('an unknown agent is refused, and the message names what is known', () => {
+  const { error, targets } = parseAgents('emacs')
+  assert.equal(targets, undefined)
+  assert.match(error, /emacs/)
+  for (const agent of AGENT_TARGETS) assert.match(error, new RegExp(agent))
+})
+
+test('all or none mixed with anything else is refused rather than guessed at', () => {
+  // "all,cursor" reads two ways: everything, or a typo for just cursor. Picking one
+  // silently installs for agents somebody may have meant to leave out.
+  for (const input of ['all,cursor', 'none,claude', 'all,none']) {
+    assert.match(parseAgents(input).error, /cannot be combined/, input)
+  }
+})
+
+test('an empty --agents is refused, not read as none', () => {
+  for (const input of ['', '   ', ',,']) assert.match(parseAgents(input).error, /needs a value/, JSON.stringify(input))
+})
+
+test('every parse round-trips through the label the CLI prints back', () => {
+  for (const written of ['all', 'none', 'claude', 'claude,cursor']) {
+    const label = agentsLabel(parseAgents(written).targets)
+    assert.deepEqual(parseAgents(label).targets, parseAgents(written).targets, written)
+  }
+  assert.equal(agentsLabel(TARGETS), 'all')
+  assert.equal(agentsLabel(['agents-md']), 'none')
+})
+
+test('sameTargets ignores the order two lists were written in', () => {
+  assert.equal(sameTargets(['agents-md', 'claude'], ['claude', 'agents-md']), true)
+  assert.equal(sameTargets(['agents-md', 'claude'], ['agents-md']), false)
+  assert.equal(sameTargets(['agents-md', 'claude'], ['agents-md', 'cursor']), false)
 })

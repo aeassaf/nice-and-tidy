@@ -86,6 +86,26 @@ export function replaceRegion(actual, body) {
   return `${region.before}${wrapRegion(body)}${region.after}`
 }
 
+/**
+ * Removes the region, leaving everything outside it byte for byte.
+ *
+ * The answer when a file is only *partly* ours and our part is no longer wanted:
+ * deleting the file would take somebody else's content with it. Returns `''` when
+ * nothing but the region was there, which the caller reads as "delete the file"; an
+ * empty file is not a thing anybody asked to keep.
+ */
+export function stripRegion(actual) {
+  const region = findRegion(actual)
+  if (region === null) return null
+
+  const rest = `${region.before}${region.after}`
+  if (rest.trim() === '') return ''
+
+  // `appendRegion` puts a blank line before the begin marker. Taking the region away
+  // again should not leave that blank line behind as the file's new ending.
+  return `${rest.replace(/\n+$/, '')}\n`
+}
+
 /** Undoes the padding `wrapRegion` adds, without insisting on it. */
 function unpad(inner) {
   const head = inner.startsWith('\n\n') ? inner.slice(2) : inner.startsWith('\n') ? inner.slice(1) : inner

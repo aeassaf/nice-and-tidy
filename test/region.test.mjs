@@ -14,7 +14,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { appendRegion, findRegion, hasRegion, replaceRegion, wrapRegion } from '../src/region.js'
+import { appendRegion, findRegion, hasRegion, replaceRegion, stripRegion, wrapRegion } from '../src/region.js'
 
 const BODY = '# Generated\n\nRead AGENTS.md.\n'
 const MINE = '# My own notes\n\nRun `pnpm dev`.\n'
@@ -111,4 +111,41 @@ test('an indented copy of the markers is prose about them, not a fence', () => {
   // licence to rewrite the bytes between two lines it never wrote.
   const indented = `${MINE}\n    <!-- nice-and-tidy:begin -->\n    sample\n    <!-- nice-and-tidy:end -->\n`
   assert.equal(findRegion(indented), null)
+})
+
+// --- taking the region back out again -----------------------------------------
+
+test('stripping a region leaves the rest of the file byte for byte', () => {
+  assert.equal(stripRegion(appendRegion(MINE, BODY)), MINE)
+})
+
+test('stripping does not leave the blank line the append added behind', () => {
+  // `appendRegion` puts a blank line between the file and the begin marker. Taking
+  // the region away has to take that with it, or a target toggled off and on again
+  // walks the file down the page one line at a time.
+  const once = stripRegion(appendRegion(MINE, BODY))
+  assert.equal(stripRegion(appendRegion(once, BODY)), MINE)
+})
+
+test('a file that was nothing but a region strips to nothing at all', () => {
+  // The caller reads `''` as "delete it"; an empty file is not something somebody
+  // asked to keep, and there is no content of theirs left to protect.
+  assert.equal(stripRegion(wrapRegion(BODY)), '')
+})
+
+test('content after the region survives the strip', () => {
+  const middle = `${MINE}\n${wrapRegion(BODY)}\n# After\n`
+  const stripped = stripRegion(middle)
+  assert.match(stripped, /# After/)
+  assert.doesNotMatch(stripped, /nice-and-tidy:begin/)
+  assert.ok(stripped.startsWith(MINE))
+})
+
+test('a file with no region is not something to strip', () => {
+  assert.equal(stripRegion(MINE), null)
+})
+
+test('a mangled fence strips nothing, the same refusal findRegion makes', () => {
+  const half = `${MINE}\n<!-- nice-and-tidy:begin -->\n${BODY}\n`
+  assert.equal(stripRegion(half), null)
 })
