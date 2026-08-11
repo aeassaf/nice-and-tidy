@@ -227,7 +227,7 @@ test('appending keeps what was there and adds our content below it', async (t) =
 
 test('an appended file records the block, never the whole file', async (t) => {
   // The one that matters. Recording the whole file would make the next run read
-  // `update` — the file on disk matching what we last wrote — and replace somebody's
+  // `update`; the file on disk matching what we last wrote; and replace somebody's
   // own instructions with a bare copy of ours, without asking.
   const root = await tempDir(t)
   await writeFile(join(root, 'AGENTS.md'), MINE)
@@ -307,7 +307,7 @@ test('an update over an appended file does not grow it a line at a time', async 
 
 test('a file that did not opt in is never appended to', async (t) => {
   // Its generated content opens with frontmatter, which means nothing halfway down a
-  // file — and the markers are an HTML comment, which is a syntax error in a workflow.
+  // file; and the markers are an HTML comment, which is a syntax error in a workflow.
   const root = await tempDir(t)
   await writeFile(join(root, 'rules.mdc'), MINE)
   const items = await planFiles(root, [entry('rules.mdc', 'generated\n')], emptyManifest())
@@ -453,7 +453,7 @@ test('a manifest entry that is not a sha256 is dropped', async (t) => {
 
 // --- the other direction: a target that went away -----------------------------
 //
-// Every test below is about the same question asked in reverse — "is this file mine
+// Every test below is about the same question asked in reverse: "is this file mine
 // to take away." The manifest answers it, and the answer has to be no by default:
 // getting an update wrong shows somebody a diff, getting a removal wrong loses a
 // file that may never have been committed.
@@ -495,13 +495,13 @@ test('a hash that only differs by a trailing edit is still not ours to delete', 
   assert.equal(plan.action, ORPHANED)
 })
 
-test('nothing on disk is nothing to report — only a stale manifest entry to drop', async (t) => {
+test('nothing on disk is nothing to report, only a stale manifest entry to drop', async (t) => {
   const root = await tempDir(t)
   const gone = await planOneRemoval(root, candidate('shim.md'), manifestWith({ 'shim.md': hashContent('ours\n') }))
   assert.equal(gone.action, FORGET)
 
   const never = await planOneRemoval(root, candidate('shim.md'))
-  assert.equal(never, undefined, 'no file, no record — there is nothing to say about it')
+  assert.equal(never, undefined, 'no file, no record, so there is nothing to say about it')
 })
 
 test('an appended file loses its block, not the file', async (t) => {
@@ -513,7 +513,7 @@ test('an appended file loses its block, not the file', async (t) => {
     root,
     candidate('shim.md', { appendable: true }),
     // What the manifest holds for an appended file is the region's interior, never
-    // the whole file — the invariant the append feature rests on.
+    // the whole file; the invariant the append feature rests on.
     manifestWith({ 'shim.md': hashContent('ours\n') }),
   )
 
@@ -575,7 +575,7 @@ test('a dry run removes nothing and rewrites no manifest', async (t) => {
 
 test('an orphan keeps its manifest entry, so re-selecting the target still asks', async (t) => {
   // Dropping the entry here would make the file untracked. A later run that turned
-  // the target back on would read untracked as "not ours" — which is a conflict, so
+  // the target back on would read untracked as "not ours", which is a conflict, so
   // it would still ask. But the entry is also the record of what we last wrote, and
   // throwing it away for a file we deliberately did not touch is a lie about history.
   const root = await tempDir(t)

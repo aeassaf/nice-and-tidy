@@ -4,7 +4,7 @@
  * Everything append does downstream rests on one property: what `findRegion` reads
  * back out is exactly what `appendRegion` put in. If that round trip is lossy, the
  * interior hash never matches on a re-run and the whole feature degrades into asking
- * about the same file forever — or, worse, stops being able to tell "we wrote this"
+ * about the same file forever; or, worse, stops being able to tell "we wrote this"
  * from "somebody edited it."
  *
  * The refusals matter as much as the round trip. A half-written or duplicated fence
@@ -128,7 +128,7 @@ test('stripping does not leave the blank line the append added behind', () => {
 })
 
 test('a file that was nothing but a region strips to nothing at all', () => {
-  // The caller reads `''` as "delete it" — an empty file is not something somebody
+  // The caller reads `''` as "delete it"; an empty file is not something somebody
   // asked to keep, and there is no content of theirs left to protect.
   assert.equal(stripRegion(wrapRegion(BODY)), '')
 })
@@ -145,7 +145,7 @@ test('a file with no region is not something to strip', () => {
   assert.equal(stripRegion(MINE), null)
 })
 
-test('a mangled fence strips nothing — the same refusal findRegion makes', () => {
+test('a mangled fence strips nothing, the same refusal findRegion makes', () => {
   const half = `${MINE}\n<!-- nice-and-tidy:begin -->\n${BODY}\n`
   assert.equal(stripRegion(half), null)
 })

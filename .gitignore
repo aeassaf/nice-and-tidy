@@ -1,7 +1,7 @@
 # Dependencies
 node_modules/
 
-# Editors — IDE state is per-developer, not per-repo
+# Editors; IDE state is per-developer, not per-repo
 .idea/
 .vscode/
 *.swp
@@ -15,7 +15,7 @@ coverage/
 .tmp/
 
 # NOT ignored, on purpose:
-#   .nice-and-tidy/manifest.json — provenance for generated files. Committing it is
+#   .nice-and-tidy/manifest.json; provenance for generated files. Committing it is
 #   what lets a fresh clone tell "we wrote this and nobody touched it" apart from
 #   "somebody hand-edited this." Ignore it and every re-run after a clone treats
 #   every generated file as foreign and stops to ask.

@@ -1,5 +1,5 @@
 /**
- * Which files belong to which target, and — the half with teeth — which files a run is
+ * Which files belong to which target, and (the half with teeth) which files a run is
  * allowed to *consider* removing.
  *
  * That set is derived from the payload table on purpose, never from "everything in the

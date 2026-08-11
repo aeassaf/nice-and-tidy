@@ -42,9 +42,9 @@ export const CONFLICT_EXPLANATION = {
  * stops here and prints a path rather than a `rm`.
  */
 export const ORPHAN_EXPLANATION = {
-  untracked: 'this install has no record of writing it — left alone; delete it yourself if you want it gone',
-  edited: 'written by this tool, then edited by hand — left alone; delete it yourself if you want it gone',
-  'region-edited': 'its generated block was edited by hand — left alone; remove the block yourself',
+  untracked: 'this install has no record of writing it. Left alone; delete it yourself if you want it gone',
+  edited: 'written by this tool, then edited by hand. Left alone; delete it yourself if you want it gone',
+  'region-edited': 'its generated block was edited by hand. Left alone; remove the block yourself',
 }
 
 export function printDiff(item, write = (line) => process.stdout.write(line)) {
@@ -72,7 +72,7 @@ export function printDiff(item, write = (line) => process.stdout.write(line)) {
  * answer that cannot destroy somebody's work is the one allowed to happen by accident.
  *
  * Append is offered per question rather than always, because not every caller has
- * anywhere to put it — a JSON config cannot be appended to, and a deprecated
+ * anywhere to put it; a JSON config cannot be appended to, and a deprecated
  * convention file has no block to manage. An option that silently does nothing is
  * worse than one that isn't offered.
  *
@@ -108,7 +108,7 @@ export function createPrompter({ input = process.stdin, output = process.stdout 
      *
      * Three outcomes the caller has to tell apart: the trimmed line, `''` for a bare
      * Enter, and `null` for a stream that ended with nothing left to give. Enter means
-     * "take the default" and EOF means "nobody is here" — collapsing them is how a
+     * "take the default" and EOF means "nobody is here". Collapsing them is how a
      * pipe ends up silently answering a question on somebody's behalf.
      *
      * Parsing and re-asking belong to the caller. This module knows how to read a line

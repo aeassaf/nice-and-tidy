@@ -13,10 +13,10 @@ This repo currently uses a trunk-based model.
 | Branch | Purpose | Receives merges from | Never |
 |---|---|---|---|
 | `main` | Production. What's live. Also the default base for everyday work. | `feature/*`, `fix/*`, `docs/*`, `chore/*` | A direct push. |
-| `feature/<issue>-<slug>` | A new capability. Mostly `feat` commits. | — | — |
-| `fix/<issue>-<slug>` | A bug fix. Mostly `fix` commits. | — | — |
-| `docs/<issue>-<slug>` | Documentation-only work. `docs` commits. | — | — |
-| `chore/<issue>-<slug>` | Tooling, maintenance, dependency bumps, gate work. `chore`/`ci`/`build`/`dependencies`/`refactor`/`test` commits. | — | — |
+| `feature/<issue>-<slug>` | A new capability. Mostly `feat` commits. | n/a | n/a |
+| `fix/<issue>-<slug>` | A bug fix. Mostly `fix` commits. | n/a | n/a |
+| `docs/<issue>-<slug>` | Documentation-only work. `docs` commits. | n/a | n/a |
+| `chore/<issue>-<slug>` | Tooling, maintenance, dependency bumps, gate work. `chore`/`ci`/`build`/`dependencies`/`refactor`/`test` commits. | n/a | n/a |
 
 Every branch is short-lived: cut from `main`, PR straight back into `main`, delete it
 after merge. There is no long-lived integration branch to keep green.
@@ -32,7 +32,7 @@ Examples: `feature/12-search-index`, `fix/31-stale-avatar-cache`,
 `docs/8-contributing-guide`, `chore/19-bump-node`. The issue number makes
 `git branch --list '*31*'` findable and lets the branch answer "what's this for"
 without opening GitHub. Pick the type from what the branch's commits will mostly be,
-not from the issue's GitHub label — an issue labelled `bug` that turns out to need
+not from the issue's GitHub label; an issue labelled `bug` that turns out to need
 `docs`-only work ships as a `docs/` branch.
 
 
@@ -41,5 +41,5 @@ not from the issue's GitHub label — an issue labelled `bug` that turns out to 
 
 No version exists until the first tag. From there, semver follows the commit types
 shipped since the last tag: any `feat` bumps minor, a fix-only batch bumps patch, a
-`BREAKING CHANGE:` footer bumps major. Nothing computes this automatically — it's a
+`BREAKING CHANGE:` footer bumps major. Nothing computes this automatically; it's a
 convention to follow by hand until, if ever, it's worth scripting.

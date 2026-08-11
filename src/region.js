@@ -6,7 +6,7 @@
  * markers, and everything outside them belongs to whoever wrote it.
  *
  * The markers are load-bearing, not decoration. They are how a later run knows which
- * bytes it is allowed to rewrite — so for an appended file the manifest records the
+ * bytes it is allowed to rewrite; so for an appended file the manifest records the
  * hash of the region's *interior*, never the whole file. Recording the whole file
  * would make the next run read `update` and replace somebody's own content with a
  * bare copy of ours, without asking. That is the one failure this engine exists to
@@ -20,7 +20,7 @@
 import { normalise } from './hash.js'
 
 export const BEGIN =
-  '<!-- nice-and-tidy:begin — generated. This block is rewritten on every run; anything outside these markers is yours. -->'
+  '<!-- nice-and-tidy:begin; generated. This block is rewritten on every run; anything outside these markers is yours. -->'
 export const END = '<!-- nice-and-tidy:end -->'
 
 // Column zero, because that is where this tool writes them. An indented copy is a
@@ -35,12 +35,12 @@ const matches = (text, re) => [...text.matchAll(new RegExp(re.source, re.flags))
  * one well-formed pair of markers.
  *
  * `null` is the answer for a file with no markers, with only half a pair, with the end
- * before the begin, or with duplicates — a hand-mangled fence is not something to
+ * before the begin, or with duplicates; a hand-mangled fence is not something to
  * guess at. Callers treat `null` as "whole-file rules apply," which for a file we have
  * a region hash for means the hashes disagree and it becomes a conflict.
  *
  * `before` and `after` are the original bytes, so rewriting the region preserves them
- * exactly. `body` is normalised, because it is only ever hashed and compared — never
+ * exactly. `body` is normalised, because it is only ever hashed and compared; never
  * written back.
  *
  * Both markers own their own line, including the newline that ends it. That is what
@@ -89,7 +89,7 @@ export function replaceRegion(actual, body) {
 /**
  * Removes the region, leaving everything outside it byte for byte.
  *
- * The answer when a file is only *partly* ours and our part is no longer wanted —
+ * The answer when a file is only *partly* ours and our part is no longer wanted:
  * deleting the file would take somebody else's content with it. Returns `''` when
  * nothing but the region was there, which the caller reads as "delete the file"; an
  * empty file is not a thing anybody asked to keep.

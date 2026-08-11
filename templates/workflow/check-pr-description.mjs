@@ -16,7 +16,7 @@
 
 /**
  * The template's sections, in the order they appear in it. Presence is enforced;
- * order is not — enforcing order makes the gate brittle without making descriptions
+ * order is not; enforcing order makes the gate brittle without making descriptions
  * better.
  */
 export const REQUIRED_SECTIONS = [
@@ -83,7 +83,7 @@ export function parseSections(body) {
 /**
  * A section counts as filled if it contains at least one letter or digit once the
  * comments are gone. That rejects the untouched template, a bare bullet, and `...`,
- * while accepting "None" — which is the honest answer for Dependencies and
+ * while accepting "None"; which is the honest answer for Dependencies and
  * Screenshots on plenty of PRs, and is worth writing rather than leaving blank.
  */
 function hasContent(lines) {
@@ -148,7 +148,7 @@ async function main() {
   }
   console.error(
     '\nEvery PR must follow .github/pull_request_template.md.' +
-      '\nEdit the description on the PR — the check re-runs on edit.' +
+      '\nEdit the description on the PR; the check re-runs on edit.' +
       '\n"None" is a valid answer for Dependencies and Screenshots; leaving a section blank is not.',
   )
   return 1

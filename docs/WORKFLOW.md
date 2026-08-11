@@ -8,14 +8,13 @@ of truth for the *process*. Two companions cover what this file doesn't:
 ## The rules
 
 1. A GitHub issue exists before code does. All handling of that work happens on the
-   issue from then on — priority, labels, milestone, status.
+   issue from then on; priority, labels, milestone, status.
 2. Every created issue is added to the Project board.
 3. Every issue has every applicable field filled: milestone, labels, assignee
    (default aeassaf), and the Project fields (Status, Priority, Size).
 4. Every PR has the same fields filled, plus the linked issue.
 5. Closing a PR closes the issue it references and moves that issue to **Done** on
-   the board. GitHub does the first half automatically on `Closes #N` in the PR body
-   — the board field still needs a manual move; closing a PR does not touch it.
+   the board. GitHub does the first half automatically on `Closes #N` in the PR body; the board field still needs a manual move; closing a PR does not touch it.
 6. An issue with an open PR sits in **In review**.
 7. An issue with a branch but no open PR sits in **In progress**.
 
@@ -26,11 +25,11 @@ The target shape, from GitHub's own default team-planning template:
 - **Status**: `Backlog · Ready · In progress · In review · Done`.
 - **Priority**: `P0 · P1 · P2`.
 - **Size**: `XS · S · M · L · XL`. Also feeds the model/effort sizing step in
-  `AGENTS.md` §1 — see `SESSION_PROTOCOL.md`.
+  `AGENTS.md` §1; see `SESSION_PROTOCOL.md`.
 
 **`bootstrap` does not create this board.** Researched, not assumed: neither `gh
 project create` nor the GraphQL API can instantiate GitHub's built-in team-planning
-template — `gh project create` only ever produces a blank project (a 3-option Status
+template; `gh project create` only ever produces a blank project (a 3-option Status
 field, no Priority or Size), and `copyProjectV2` needs the template's project ID,
 which isn't exposed anywhere a token can read it. Getting the exact shape above
 without hand-written GraphQL means going through the one place that template still
@@ -42,28 +41,27 @@ exists: the web UI.
    ```bash
    gh project link <number> --owner <owner> --repo aeassaf/nice-and-tidy
    ```
-3. **Read the field and option IDs whenever a write needs them** — never cache them
+3. **Read the field and option IDs whenever a write needs them**; never cache them
    here or anywhere else; a stale ID writes the wrong value to the wrong field
    without erroring:
    ```bash
    gh project field-list <number> --owner <owner> --format json
    ```
 
-Everything after that — adding issues, moving Status, filling Priority/Size —
-is the `gh project item-*` scripting `AGENTS.md` §5 and the Skill already cover.
+Everything after that (adding issues, moving Status, filling Priority/Size) is the `gh project item-*` scripting `AGENTS.md` §5 and the Skill already cover.
 
 ## What "all fields filled" means concretely
 
-- **Milestone** — the phase or batch of work the issue belongs to.
-- **Labels** — from `bug`, `enhancement`, `documentation`, `tech-debt`, `gate`, `needs-antoine`, `question`, as many as genuinely apply. Don't force one that
+- **Milestone**; the phase or batch of work the issue belongs to.
+- **Labels**; from `bug`, `enhancement`, `documentation`, `tech-debt`, `gate`, `needs-antoine`, `question`, as many as genuinely apply. Don't force one that
   doesn't fit just to fill the field.
-- **Assignee** — aeassaf, always, unless said otherwise in chat.
-- **Priority, Size, Status** — Project (v2) fields, not settable until the board
+- **Assignee**; aeassaf, always, unless said otherwise in chat.
+- **Priority, Size, Status**; Project (v2) fields, not settable until the board
   exists. Don't fake these with labels in the meantime.
 
 ## Linking a PR to its issue so rule 5 fires
 
 Reference the issue in the PR's **Issues** section. GitHub auto-closes an issue on
 merge when a PR merged into the repository's **default branch** contains `Closes #N`,
-`Fixes #N`, or `Resolves #N` in its body — a bare `#N` does **not** auto-close
+`Fixes #N`, or `Resolves #N` in its body; a bare `#N` does **not** auto-close
 it.

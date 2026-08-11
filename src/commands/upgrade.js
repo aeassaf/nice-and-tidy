@@ -9,17 +9,17 @@ import { globalScope, localScope } from '../scope.js'
 import { compareVersions, packageVersion } from '../version.js'
 
 /**
- * `init` is already re-runnable — see its own docstring — so pulling in a newer
+ * `init` is already re-runnable; see its own docstring; so pulling in a newer
  * release is, mechanically, just running it again. `upgrade` wraps that with the two
  * things a plain re-run cannot do on its own:
  *
  *   - say which version wrote what's here and which version is about to replace it
  *   - notice that a newer release added config keys an existing config predates, and
- *     offer to add them — `nice-and-tidy.config.json` is user-owned and `init` never
+ *     offer to add them; `nice-and-tidy.config.json` is user-owned and `init` never
  *     touches it once it exists, so nothing else will ever do this
  *
- * Everything else — the file plan, the conflict prompts, `--force`/`--keep-existing`
- * — is `init`'s, unchanged. This function delegates to it rather than re-implement
+ * Everything else; the file plan, the conflict prompts, `--force`/`--keep-existing`
+ *; is `init`'s, unchanged. This function delegates to it rather than re-implement
  * any of it.
  */
 export async function upgrade(options) {
@@ -40,13 +40,13 @@ export async function upgrade(options) {
   } = options ?? {}
 
   // `--agents` asks for the config to change; these two say don't touch anything. One
-  // of them has to lose, and picking a winner silently is worse than saying so — a run
+  // of them has to lose, and picking a winner silently is worse than saying so; a run
   // that quietly ignored `--agents` would go on installing for agents somebody just
   // asked it to stop installing for.
   if (agents !== undefined && (keepExisting || append)) {
     const flag = keepExisting ? '--keep-existing' : '--append'
     err(
-      `Pass --agents or ${flag}, not both — --agents changes "targets" in ${CONFIG_FILENAME}, ` +
+      `Pass --agents or ${flag}, not both. --agents changes "targets" in ${CONFIG_FILENAME}, ` +
         `and ${flag} says leave files as they are.\n`,
     )
     return EXIT_USAGE
@@ -65,7 +65,7 @@ export async function upgrade(options) {
   }
 
   if (!hasManifest && rawConfigText === null) {
-    err(`Nothing installed at ${scope.label} — run \`nice-and-tidy init\` first.\n`)
+    err(`Nothing installed at ${scope.label}; run \`nice-and-tidy init\` first.\n`)
     return EXIT_USAGE
   }
 
@@ -121,7 +121,7 @@ export async function upgrade(options) {
       // and did not take it. There the file on disk is the answer, and `init`'s "the
       // config wins" note would contradict a question just asked and declined.
       //
-      // A dry run, though, wrote nothing above — so the config on disk still lists the
+      // A dry run, though, wrote nothing above, so the config on disk still lists the
       // old targets, and planning against it would report no removals for a command
       // whose whole point is that it removes things.
       agents: rawConfigText === null || dryRun || backfill === APPLIED ? agents : undefined,
@@ -146,13 +146,13 @@ const BLOCKED = 'blocked'
  * are to.
  *
  * The first is automatic: a newer release's `defaultConfig()` carries keys the file on
- * disk predates. `readConfig` already computes exactly that shape — raw file merged
- * over current defaults, nested objects included — so the diff against the raw text is
+ * disk predates. `readConfig` already computes exactly that shape (raw file merged
+ * over current defaults, nested objects included), so the diff against the raw text is
  * entirely "what's new," and nothing here needs to know which keys those are. Keys
  * already present are never removed or changed.
  *
  * The second is asked for: `--agents` sets `targets`. That one *does* change a key the
- * user set, which is why it lives behind the same prompt rather than in `init` — and
+ * user set, which is why it lives behind the same prompt rather than in `init`, and
  * why the diff is shown before the question either way.
  */
 async function rewriteConfig({
@@ -175,7 +175,7 @@ async function rewriteConfig({
     existing = await readConfig(configPath)
   } catch (error) {
     // A config that fails to parse or validate is `init`'s error to report, in the
-    // one place that already does so consistently — not this function's to duplicate.
+    // one place that already does so consistently; not this function's to duplicate.
     if (error instanceof ConfigError) return SKIPPED
     throw error
   }
@@ -186,7 +186,7 @@ async function rewriteConfig({
   const desiredText = retargeted ? serialiseConfig({ ...existing.config, targets: agents }) : merged
 
   if (agents !== undefined && !retargeted) {
-    out(`  ${dim(`config   ${CONFIG_FILENAME} already installs for ${agentsLabel(agents)} — nothing to change there.`)}\n`)
+    out(`  ${dim(`config   ${CONFIG_FILENAME} already installs for ${agentsLabel(agents)}; nothing to change there.`)}\n`)
   }
   if (desiredText === rawConfigText) return SKIPPED
 
@@ -203,11 +203,11 @@ async function rewriteConfig({
 
   // `--append` is an answer about instruction files, and it has no meaning here: a
   // config is JSON, with nowhere to put a block. Treating it as "leave it alone" is
-  // what keeps `upgrade --append` usable without a terminal — the alternative is
+  // what keeps `upgrade --append` usable without a terminal; the alternative is
   // blocking the whole run on a question this flag was never about. `--force` is
   // still the way to take the new keys.
   if (append) {
-    out(`\n  left ${CONFIG_FILENAME} alone — --append has nothing to add to a config file.\n`)
+    out(`\n  left ${CONFIG_FILENAME} alone; --append has nothing to add to a config file.\n`)
     return SKIPPED
   }
 
@@ -221,7 +221,7 @@ async function rewriteConfig({
     out(`\n  ${bold(CONFIG_FILENAME)}\n`)
     const answer = await prompter.ask()
     if (answer === 'abort') {
-      out(`\n  aborted — nothing was written.\n`)
+      out(`\n  aborted; nothing was written.\n`)
       return BLOCKED
     }
     if (answer === 'overwrite') {
@@ -242,7 +242,7 @@ async function rewriteConfig({
 }
 
 /**
- * The same config write has two reasons behind it and they are not interchangeable —
+ * The same config write has two reasons behind it and they are not interchangeable.
  * "added the missing keys" printed over a run that just dropped two agents would be a
  * false account of what happened to somebody's repo. One place decides the wording so
  * the heading, the confirmation and the no-terminal message can never disagree.

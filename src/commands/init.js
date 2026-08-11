@@ -68,7 +68,7 @@ export async function init(options) {
 
   // One prompter for the whole run. The agent question below and the conflict
   // questions later are two questions on the same stdin, and a second readline
-  // interface on a stream the first one already paused gets EOF instead of an answer —
+  // interface on a stream the first one already paused gets EOF instead of an answer;
   // see createPrompter. A caller that opened its own (`upgrade`) passes it in.
   const prompter = shared ?? (interactive ? createPrompter({ input, output }) : null)
 
@@ -83,7 +83,7 @@ export async function init(options) {
       : (agents ?? (interactive && !dryRun ? await askForAgents({ kind: scope.kind, prompter, out }) : null))
 
     // A dry run with `--agents` was asked what those agents would mean, so it answers
-    // that — planning against the config on disk instead would report on a command
+    // that. Planning against the config on disk instead would report on a command
     // nobody typed, and report "nothing to remove" for a run that removes two files.
     // A real run is refused below instead: `init` does not rewrite a config that exists.
     const previewing = existing !== null && agents !== undefined && dryRun
@@ -96,7 +96,7 @@ export async function init(options) {
 
     if (previewing) {
       out(
-        `  ${dim(`note     showing --agents ${agentsLabel(agents)}. Nothing here writes to ${CONFIG_FILENAME} —`)}\n` +
+        `  ${dim(`note     showing --agents ${agentsLabel(agents)}. Nothing here writes to ${CONFIG_FILENAME};`)}\n` +
           `  ${dim(`         \`nice-and-tidy upgrade --agents ${agentsLabel(agents)}\` is what changes it for real.`)}\n`,
       )
     }
@@ -104,18 +104,18 @@ export async function init(options) {
     if (existing && gitflow !== undefined && gitflow !== config.gitflow) {
       out(
         `  ${yellow('note')}     ${CONFIG_FILENAME} already sets "gitflow": ${config.gitflow}, and the config wins.\n` +
-          `           Edit that key in the file to change it — a flag does not rewrite your config.\n`,
+        `           Edit that key in the file to change it; a flag does not rewrite your config.\n`,
       )
     }
 
     // Same precedent, one command further on. `init` does not rewrite a config that
-    // already exists, but unlike `gitflow` there is a command that will — `upgrade`
+    // already exists, but unlike `gitflow` there is a command that will. `upgrade`
     // already owns the one path that asks before touching the user's config, so this
     // points at it rather than sending somebody to a text editor.
     if (existing && agents !== undefined && !previewing && !sameTargets(agents, config.targets)) {
       out(
         `  ${yellow('note')}     ${CONFIG_FILENAME} already sets "targets", and the config wins.\n` +
-          `           \`nice-and-tidy upgrade --agents ${agentsLabel(agents)}\` changes it — it asks first,\n` +
+          `           \`nice-and-tidy upgrade --agents ${agentsLabel(agents)}\` changes it; it asks first,\n` +
           `           then removes the files the dropped agents left behind.\n`,
       )
     }
@@ -130,11 +130,11 @@ export async function init(options) {
     const applicable = keepExisting ? [] : removals
 
     for (const item of items) {
-      const suffix = item.action === KEPT ? dim('  (yours — never rewritten)') : ''
+    const suffix = item.action === KEPT ? dim('  (yours; never rewritten)') : ''
       out(`  ${ACTION_LABEL[item.action]}  ${item.path}${suffix}\n`)
     }
     for (const item of listable(applicable)) {
-      const suffix = stripsRegion(item) ? dim('  (its generated block only — the rest is yours)') : ''
+      const suffix = stripsRegion(item) ? dim('  (its generated block only, the rest is yours)') : ''
       out(`  ${ACTION_LABEL[item.action]}  ${item.path}${suffix}\n`)
     }
 
@@ -180,7 +180,7 @@ export async function init(options) {
     const inert = inertTargets(scope.kind, config.targets)
     if (inert.length > 0) {
       out(
-        `${dim(`  ${inert.join(', ')} ${inert.length === 1 ? 'has' : 'have'} nothing to install at ${scope.kind} scope — skipped.`)}\n`,
+      `${dim(`  ${inert.join(', ')} ${inert.length === 1 ? 'has' : 'have'} nothing to install at ${scope.kind} scope; skipped.`)}\n`,
       )
     }
 
@@ -189,7 +189,7 @@ export async function init(options) {
       out(
         `\n  ${bold('One thing this did not do.')} Nothing loads a machine-wide AGENTS.md on its own.\n` +
           `  ${dim(`~/${canonical}`)} is a reference copy, not a hook. Per-repo installs are what\n` +
-          `  agents actually read — run this inside a repository for that.\n`,
+        `  agents actually read; run this inside a repository for that.\n`,
       )
     }
 
@@ -201,7 +201,7 @@ export async function init(options) {
           `\n  ${dim(
             `${flagged.length} older ${flagged.length === 1 ? 'file' : 'files'} here (${flagged
               .map((hit) => hit.path)
-              .join(', ')}) may still conflict with AGENTS.md — run \`nice-and-tidy clean\` to review ${
+            .join(', ')}) may still conflict with AGENTS.md; run \`nice-and-tidy clean\` to review ${
               flagged.length === 1 ? 'it' : 'them'
             }.`,
           )}\n`,
@@ -221,7 +221,7 @@ export async function init(options) {
  * nothing on disk to answer it: a config that already exists is the answer.
  *
  * Enter takes every agent, which is what this did before the question existed. The
- * prompt is an offer — a run that cannot ask, or one nobody answers, installs
+ * prompt is an offer; a run that cannot ask, or one nobody answers, installs
  * everything exactly as it always has.
  */
 async function askForAgents({ kind, prompter, out }) {
@@ -237,14 +237,14 @@ async function askForAgents({ kind, prompter, out }) {
   }
   out(
     `\n  ${dim(
-      `${grouped.get('agents-md')?.[0] ?? 'AGENTS.md'} is written either way — every one of these is a pointer to it.`,
+      `${grouped.get('agents-md')?.[0] ?? 'AGENTS.md'} is written either way; every one of these is a pointer to it.`,
     )}\n\n`,
   )
 
   // Three tries, then take the default. A wrong answer deserves a second go; an
   // unparseable stream answering three times running is not somebody typing.
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const answer = await prompter.line(`  ${bold('agents')}? [names, "all", or "none" — Enter for all] `)
+    const answer = await prompter.line(`  ${bold('agents')}? [names, "all", or "none"; Enter for all] `)
     if (answer === null) break
     if (answer === '') break
 
@@ -280,7 +280,7 @@ async function freshConfig(scope, cwd, gitflow, targets) {
 const listable = (removals) => removals.filter((item) => item.action !== FORGET)
 
 /**
- * What a removal walk left behind and why — the files this refuses to delete, and the
+ * What a removal walk left behind and why: the files this refuses to delete, and the
  * ones a flag told it not to. Both are cases where saying nothing would read as "there
  * was nothing there."
  */
@@ -292,21 +292,21 @@ function removalNotes(removals, { keepExisting }) {
     if (held.length > 0) {
       notes.push(
         `${held.length} ${held.length === 1 ? 'file belongs' : 'files belong'} to agents your config no longer ` +
-          `lists — left in place (--keep-existing): ${held.map((item) => item.path).join(', ')}.`,
+          `lists, left in place (--keep-existing): ${held.map((item) => item.path).join(', ')}.`,
       )
     }
     return notes
   }
 
   for (const item of removals.filter((item) => item.action === ORPHANED)) {
-    notes.push(`${item.path} — ${ORPHAN_EXPLANATION[item.reason]}.`)
+    notes.push(`${item.path}: ${ORPHAN_EXPLANATION[item.reason]}.`)
   }
   return notes
 }
 
 function summarise(items, result, { dryRun, idle, forgotten, versionRecorded }) {
   if (idle) {
-    // Every file is untouched, but the manifest can still change — and a repo that
+    // Every file is untouched, but the manifest can still change, and a repo that
     // commits it would otherwise see a dirty file after a run that just claimed there
     // was nothing to write. Two different reasons, said apart: a version bump is not
     // the same event as dropping the record of a file somebody deleted themselves, and

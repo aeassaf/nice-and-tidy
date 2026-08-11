@@ -16,11 +16,11 @@ export const toPosix = (path) => path.split(sep).join('/')
 
 /**
  * Phase 1 writes instruction files only. The pull request template, the description
- * gate and its workflow are `bootstrap`'s payload, not `init`'s — they are GitHub-side
+ * gate and its workflow are `bootstrap`'s payload, not `init`'s; they are GitHub-side
  * setup, and `init` makes no GitHub-side changes.
  *
  * `appendable` marks the files a conflict can be answered by adding to rather than
- * replacing — see `region.js`. It is opt-in, and the two that opt out do so for the
+ * replacing; see `region.js`. It is opt-in, and the two that opt out do so for the
  * same reason: their generated content opens with YAML frontmatter, which only has
  * meaning at the top of a file. Appended halfway down, it is a stray `---` block and
  * the directives it carries are silently lost.
@@ -55,7 +55,7 @@ const LOCAL_FILES = [
 /**
  * A global install writes only where something actually loads the file from.
  *
- * The canonical copy under `~/.config` is a reference, not a hook — no tool reads a
+ * The canonical copy under `~/.config` is a reference, not a hook; no tool reads a
  * global `AGENTS.md` on its own, and `init --global` says so rather than leaving the
  * impression that it wired something up. Editing a user's existing machine-wide
  * instruction file to import it is a change to their environment, so that stays a
@@ -92,7 +92,7 @@ export function filesByTarget(kind) {
 }
 
 /**
- * Files this scope knows how to write for a target that is *not* selected — the set a
+ * Files this scope knows how to write for a target that is *not* selected: the set a
  * run may consider removing.
  *
  * Deliberately derived from `filesFor`, not from "everything in the manifest that
@@ -101,7 +101,7 @@ export function filesByTarget(kind) {
  * broader rule would have `init` delete all three on every run. This tool only ever
  * proposes removing a file it can name in advance and say which target produced.
  *
- * A path that some *selected* target also writes is excluded — no entry does that
+ * A path that some *selected* target also writes is excluded. No entry does that
  * today, and if one ever does, the selected target keeping its file is the answer that
  * cannot lose anything.
  */
@@ -141,10 +141,10 @@ export async function buildPayload(scope, config) {
     })
   }
 
-  // The memory file is scoped to a repo, never a machine — a global install has
+  // The memory file is scoped to a repo, never a machine; a global install has
   // nowhere of its own for session notes to belong to. `ownership: USER`, like the
   // config: written once if nothing is there, then never touched again regardless of
-  // what an agent writes into it afterward. See plan.js — a USER-owned file that
+  // what an agent writes into it afterward. See plan.js; a USER-owned file that
   // already exists is always KEPT, never diffed or flagged as a conflict.
   if (scope.kind === 'local') {
     const source = await readFile(new URL(MEMORY_STARTER_TEMPLATE, TEMPLATE_ROOT), 'utf8')

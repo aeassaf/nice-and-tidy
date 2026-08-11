@@ -2,7 +2,7 @@ name: CI
 
 # A deliberately minimal starting point: install, then `npm test`. It assumes an npm
 # project and nothing else. Adjust it to whatever this repo actually needs to build
-# and test — this is a starting point, not a fixed contract.
+# and test; this is a starting point, not a fixed contract.
 on:
   push:
     branches: [main]

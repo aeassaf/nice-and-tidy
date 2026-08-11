@@ -8,7 +8,7 @@ import { packageVersion } from './version.js'
 
 /**
  * Every file this tool writes lands in exactly one of these states. The whole point
- * of the manifest is that `conflict` and `update` are distinguishable — both differ
+ * of the manifest is that `conflict` and `update` are distinguishable; both differ
  * from what we want on disk, and only one of them is safe to overwrite.
  */
 export const CREATE = 'create'
@@ -19,7 +19,7 @@ export const KEPT = 'kept'
 export const CONFLICT = 'conflict'
 
 /**
- * And three more for the other direction — a file whose target is no longer selected.
+ * And three more for the other direction, for a file whose target is no longer selected.
  *
  * `remove` is the only one that touches the disk, and the manifest is what earns it
  * that: we wrote this file, and what is there is byte for byte what we wrote.
@@ -71,13 +71,13 @@ async function planFile(root, entry, manifest) {
   const actualHash = hashContent(actual)
 
   // Already exactly what we would write. Recording the hash costs nothing and stops
-  // a hand-written file — or a file from a run that predates the manifest — from
+  // a hand-written file; or a file from a run that predates the manifest; from
   // prompting forever about a difference that does not exist.
   if (actualHash === desiredHash) return { ...item, action: recorded === actualHash ? UNCHANGED : ADOPT, hash: actualHash }
 
   // Append answers exactly one question: "this file is somebody else's, and both lots
   // of content should survive." A file this tool wrote and somebody then edited is not
-  // that question — its content is already a copy of ours, and appending would leave
+  // that question; its content is already a copy of ours, and appending would leave
   // two of them in the same file. That one is a conflict about a *version*, and
   // overwrite or keep-mine are the answers to it. The bytes are worked out here so the
   // diff shown and the bytes written can never be two different answers.
@@ -93,7 +93,7 @@ async function planFile(root, entry, manifest) {
  * The same four outcomes as a whole file, judged on the region's interior instead.
  *
  * Two consequences, both deliberate. Editing the file *outside* the markers is not a
- * conflict — that content is the user's and this tool has no opinion on it. And every
+ * conflict; that content is the user's and this tool has no opinion on it. And every
  * write here is `replaceRegion`, never `desired`: once a file is region-managed, even
  * "overwrite" means "restore our block," not "replace their file."
  */
@@ -118,13 +118,13 @@ function planRegion(item, { region, desiredHash, recorded }) {
  *
  * The rule is the manifest's, applied in the one direction it was always going to be
  * needed in. A generated file that is byte for byte what we last wrote is ours to take
- * away again. Anything else — never recorded, or recorded and then edited — is
+ * away again. Anything else, whether never recorded or recorded and then edited, is
  * somebody's work, and this reports it for a human to delete rather than guessing.
  * Getting that backwards deletes something unrecoverable, which is why the safe branch
  * is the fallthrough and every unsafe one returns early.
  *
  * Candidates come from `payload.js#orphanedFiles`, never from "the manifest minus
- * today's payload" — see the note there.
+ * today's payload"; see the note there.
  */
 export async function planRemovals(root, candidates, manifest) {
   const items = await Promise.all(candidates.map((candidate) => planRemoval(root, candidate, manifest)))
@@ -144,7 +144,7 @@ async function planRemoval(root, candidate, manifest) {
 
   const base = { ...candidate, absolute, actual }
 
-  // Nothing on disk. Nothing to report either — but a manifest entry left pointing at
+  // Nothing on disk. Nothing to report either, but a manifest entry left pointing at
   // a path we no longer write would mark whatever somebody puts there next as ours.
   if (actual === null) return recorded === undefined ? null : { ...base, action: FORGET }
 
@@ -152,7 +152,7 @@ async function planRemoval(root, candidate, manifest) {
 
   // Only partly ours: our block inside a file somebody else wrote. Deleting the file
   // would take their content with it, so the region is what goes. The manifest holds
-  // the hash of the region's interior for these, never of the whole file — comparing
+  // the hash of the region's interior for these, never of the whole file. Comparing
   // against the whole file here would read every appended file as hand-edited.
   const region = candidate.appendable ? findRegion(actual) : null
   if (region !== null) {
@@ -181,7 +181,7 @@ const APPLIED = new Set(['overwrite', 'append'])
  * Applies a plan that has already had its conflicts resolved.
  *
  * `resolutions` maps a path to `overwrite`, `append` or `skip`. A conflict with no
- * resolution is skipped — the default has to be the one that cannot destroy work, and
+ * resolution is skipped; the default has to be the one that cannot destroy work, and
  * so is an `append` asked for on a file that has no way to accept one.
  *
  * `removals` is `planRemovals`'s output. Pass an empty list to write everything and
@@ -233,7 +233,7 @@ export async function applyPlan(
   }
 
   for (const item of removals) {
-    // Left exactly as it was, manifest entry included — for the same reason a skipped
+    // Left exactly as it was, manifest entry included, for the same reason a skipped
     // conflict keeps its own. Dropping the entry here would make the file untracked,
     // and a later run that re-selects the target would overwrite it without asking.
     if (item.action === ORPHANED) {

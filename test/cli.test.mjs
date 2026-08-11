@@ -1,13 +1,13 @@
 /**
- * End to end, in a real directory — through the real binary wherever that is possible.
+ * End to end, in a real directory; through the real binary wherever that is possible.
  *
  * The unit tests prove the engine's states. These prove the thing a person actually
- * runs — including that a second run is silent, and that a hand-edited file survives
+ * runs; including that a second run is silent, and that a hand-edited file survives
  * a run with no terminal to ask on.
  *
  * The one exception is the interactive prompt: `interactive` comes from stdin being a
  * TTY, and a subprocess spawned by the test runner never has one. That test calls
- * `init` in process with a pair of streams instead, which is the same path — `init`
+ * `init` in process with a pair of streams instead, which is the same path; `init`
  * does not know who is holding the other end.
  */
 import assert from 'node:assert/strict'
@@ -144,7 +144,7 @@ test('a custom protocol.memoryFile path is where the scaffold lands', async (t) 
   assert.equal(await exists(join(cwd, 'docs/RESUME_HERE.md')), true, 'the first scaffold is not deleted on a path change')
 })
 
-test('a global install never scaffolds a memory file — it has no single repo to belong to', async (t) => {
+test('a global install never scaffolds a memory file; it has no single repo to belong to', async (t) => {
   const cwd = await tempDir(t)
   const home = await tempDir(t)
   await cli(['init', '--global'], { cwd, env: { HOME: home } })
@@ -311,7 +311,7 @@ test('append is offered as a way out when there is no terminal to ask on', async
 test('answering + at the prompt appends, and only the appendable file is offered it', async (t) => {
   // In process rather than through the binary: `interactive` comes from stdin being a
   // TTY, and a subprocess spawned by the test runner never has one. Same path a person
-  // takes — `init` does not know who is holding the other end of the stream.
+  // takes; `init` does not know who is holding the other end of the stream.
   const cwd = await tempDir(t)
   await writeFile(join(cwd, 'CLAUDE.md'), MINE)
   await mkdir(join(cwd, '.cursor/rules'), { recursive: true })
@@ -365,7 +365,7 @@ test('diff writes nothing at all, not even on a clean directory', async (t) => {
   }
 })
 
-test('diff reports a conflict without failing — it is a report', async (t) => {
+test('diff reports a conflict without failing; it is a report', async (t) => {
   const cwd = await tempDir(t)
   await cli(['init'], { cwd })
   await appendFile(join(cwd, 'AGENTS.md'), '\nmine\n')
@@ -400,7 +400,7 @@ test('--agents picks what a fresh install writes', async (t) => {
 
   assert.equal(code, 0)
   assert.ok(await exists(join(cwd, 'CLAUDE.md')))
-  assert.ok(await exists(join(cwd, 'AGENTS.md')), 'AGENTS.md is what the shims point at — never optional')
+  assert.ok(await exists(join(cwd, 'AGENTS.md')), 'AGENTS.md is what the shims point at, never optional')
   assert.equal(await exists(join(cwd, '.github/copilot-instructions.md')), false)
   assert.equal(await exists(join(cwd, '.cursor/rules/nice-and-tidy.mdc')), false)
 
@@ -509,7 +509,7 @@ test('diff shows a removal it is not going to perform', async (t) => {
 test('a dry run of --agents reports the removals the real run performs', async (t) => {
   // The whole point of previewing `--agents` is to see what it takes away. Planning
   // against the config still on disk would report nothing and delete two files a
-  // moment later — the exact drift diff exists to prevent.
+  // moment later, the exact drift diff exists to prevent.
   const cwd = await tempDir(t)
   await cli(['init'], { cwd })
 
@@ -532,7 +532,7 @@ test('a dry run of --agents reports the removals the real run performs', async (
 })
 
 test('diff --agents previews without claiming the config wins', async (t) => {
-  // "the config wins" is a refusal, and nothing is being refused here — a preview was
+  // "the config wins" is a refusal, and nothing is being refused here; a preview was
   // asked for and given. Printing both would be two answers to the same question.
   const cwd = await tempDir(t)
   await cli(['init'], { cwd })
@@ -547,7 +547,7 @@ test('diff --agents previews without claiming the config wins', async (t) => {
 
 test('a stale manifest entry is dropped without claiming a version was recorded', async (t) => {
   // The file is gone because somebody deleted it themselves. The manifest still has
-  // to forget it — but "recorded the version this ran with" would be an account of an
+  // to forget it, but "recorded the version this ran with" would be an account of an
   // event that did not happen.
   const cwd = await tempDir(t)
   await cli(['init'], { cwd })
@@ -840,7 +840,7 @@ test('clean --force replaces every flagged file with a pointer to AGENTS.md', as
   assert.match(await readFile(join(cwd, '.windsurfrules'), 'utf8'), /AGENTS\.md/)
 })
 
-test('clean --force is a no-op the second time — the pointer already mentions AGENTS.md', async (t) => {
+test('clean --force is a no-op the second time; the pointer already mentions AGENTS.md', async (t) => {
   const cwd = await tempDir(t)
   await cli(['init'], { cwd })
   await writeFile(join(cwd, '.cursorrules'), 'always use tabs\n')
@@ -876,13 +876,13 @@ const BANNED = /\b(claude|copilot|cursor|windsurf|codex|gemini|aider|devin|chatg
 
 test('help and bootstrap name no agent or product', async (t) => {
   const cwd = await tempDir(t)
-  // Two exemptions, both for the same reason — a name somebody else chose, quoted
+  // Two exemptions, both for the same reason: a name somebody else chose, quoted
   // back. `init`'s file listing prints the paths it just wrote, and a loader dictates
   // those. `--agents` documents the values that flag takes, and those values *are* the
   // products; a flag for choosing between agents that will not name one is unusable.
   //
   // Everything the CLI says in its own voice is still not exempt, and neither is a
-  // single word of any generated file — see contract.test.mjs, which is the rule this
+  // single word of any generated file; see contract.test.mjs, which is the rule this
   // one only guards the surface of.
   for (const args of [['--help'], ['bootstrap']]) {
     const { stdout, stderr } = await cli(args, { cwd })

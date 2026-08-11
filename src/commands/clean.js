@@ -16,7 +16,7 @@ const POINTER_TEMPLATE = new URL('../../templates/shims/pointer.md.tmpl', import
  * `clean` is not `init`'s conflict walk with a different noun. `init` diffs a payload
  * file against content it knows how to regenerate, with a manifest to tell "someone
  * edited it" apart from "config changed." A foreign convention file has none of
- * that — there is nothing to regenerate, no provenance to record, only "does this
+ * that; there is nothing to regenerate, no provenance to record, only "does this
  * already point at AGENTS.md or not." So this reuses `ui.js`'s display and prompting
  * primitives directly and skips `plan.js`/the manifest entirely.
  */
@@ -49,7 +49,7 @@ export async function clean(options) {
 
   out(`${yellow(`${noun} may conflict with what AGENTS.md now says:`)}\n`)
   for (const hit of flagged) {
-    out(`\n  ${bold(hit.path)} ${dim(`— ${hit.why}`)}\n`)
+    out(`\n  ${bold(hit.path)} ${dim(`; ${hit.why}`)}\n`)
     printDiff({ path: hit.path, actual: hit.content, desired: pointer }, out)
   }
 
@@ -61,7 +61,7 @@ export async function clean(options) {
   const decision = await decide(flagged, { force, interactive, input, output, out })
 
   if (decision === ABORTED) {
-    out(`\n  aborted — nothing was written.\n`)
+    out(`\n  aborted; nothing was written.\n`)
     return EXIT_UNRESOLVED
   }
   if (decision === NO_TERMINAL) {

@@ -25,7 +25,7 @@ const OPTIONS = {
   version: { type: 'boolean', short: 'v', default: false },
 }
 
-const USAGE = `nice-and-tidy — an issue-first Git workflow and session protocol, installed into any repo.
+const USAGE = `nice-and-tidy; an issue-first Git workflow and session protocol, installed into any repo.
 
 Usage
   nice-and-tidy init [options]        write the instruction files and the config
@@ -52,7 +52,7 @@ Options
       --no-gitflow    branch off main, trunk-based  (only when creating the config)
       --agents        which agents to install for: a comma-separated list of
                        ${AGENT_TARGETS.join(', ')}, or \`all\`, or \`none\`.
-                       AGENTS.md and docs/ are written either way — every agent target
+                       AGENTS.md and docs/ are written either way; every agent target
                        is a pointer to them, so there is no install without them.
                        On \`init\`, only when creating the config; on \`upgrade\`, it
                        changes an existing one after showing the diff and asking
@@ -60,8 +60,7 @@ Options
   -v, --version       print the version
 
 \`bootstrap\` needs \`nice-and-tidy init\` run first (it reads the config init writes)
-and \`gh\` installed and logged in. It creates labels and milestones from config —
-skipping ones that already exist — and prints, but never runs, the command to flip
+and \`gh\` installed and logged in. It creates labels and milestones from config; skipping ones that already exist; and prints, but never runs, the command to flip
 the repository's default branch.
 
 \`upgrade\` needs \`nice-and-tidy init\` run first (it reads the manifest init writes)
@@ -71,7 +70,7 @@ you pass \`--force\`.
 Re-running is safe. A file this tool wrote and nobody touched gets updated; a file
 somebody edited gets shown as a diff and left alone unless you say otherwise.
 
-Dropping an agent removes the files it had — but only the ones this tool wrote and
+Dropping an agent removes the files it had, but only the ones this tool wrote and
 nobody has touched since. Anything else is named and left where it is, for you to
 delete.
 `
@@ -113,20 +112,20 @@ async function main(argv) {
   // Three answers to the same question, and each pair is a different contradiction, so
   // each pair says which one it is rather than sharing one vague message.
   if (values.force && values['keep-existing']) {
-    process.stderr.write('Pass --force or --keep-existing, not both — they are opposite answers.\n')
+    process.stderr.write('Pass --force or --keep-existing, not both; they are opposite answers.\n')
     return EXIT_USAGE
   }
   if (values.force && values.append) {
-    process.stderr.write('Pass --force or --append, not both — one replaces what is there, the other keeps it.\n')
+    process.stderr.write('Pass --force or --append, not both; one replaces what is there, the other keeps it.\n')
     return EXIT_USAGE
   }
   if (values['keep-existing'] && values.append) {
-    process.stderr.write('Pass --keep-existing or --append, not both — one writes nothing, the other writes a block.\n')
+    process.stderr.write('Pass --keep-existing or --append, not both; one writes nothing, the other writes a block.\n')
     return EXIT_USAGE
   }
 
   // `--agents` is about which instruction files exist. `bootstrap` writes GitHub-side
-  // setup — the PR template, its gate, the CI workflow — and none of that depends on
+  // setup (the PR template, its gate, the CI workflow), and none of that depends on
   // which agent you use; `clean` is about files this tool never wrote. Accepting the
   // flag there and doing nothing with it would be the worse answer.
   const AGENT_COMMANDS = new Set(['init', 'diff', 'upgrade'])
